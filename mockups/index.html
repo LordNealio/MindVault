@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>WorkWrite Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#111318;font-family:'Plus Jakarta Sans',sans-serif;padding:40px 20px;display:flex;flex-direction:column;align-items:center;gap:60px}
+h1{color:#F1F5F9;font-family:'Unbounded',sans-serif;font-size:14px;letter-spacing:3px;text-transform:uppercase;opacity:.4;margin-bottom:-40px}
+.row{display:flex;gap:32px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.col{display:flex;flex-direction:column;align-items:center;gap:12px}
+.label{color:#6B7A99;font-family:'Unbounded',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase}
+
+/* PHONE FRAME */
+.phone{width:375px;height:812px;border-radius:48px;overflow:hidden;position:relative;flex-shrink:0}
+.phone-inner{width:100%;height:100%;overflow:hidden;position:relative;display:flex;flex-direction:column}
+
+/* ========= OPTION A: Deep Dark (Spotify-style) ========= */
+.a{background:#0D0F14;border:1.5px solid #2D3348}
+.a .status{background:#0D0F14;padding:14px 28px 0;display:flex;justify-content:space-between;align-items:center}
+.a .status span{color:#F1F5F9;font-size:12px;font-weight:600}
+.a .screen{flex:1;overflow:hidden;padding:0 20px;padding-bottom:80px;overflow-y:auto;display:flex;flex-direction:column;gap:0}
+.a .topbar{padding:20px 0 8px;display:flex;align-items:center;justify-content:space-between}
+.a .topbar h2{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:700;color:#F1F5F9}
+.a .topbar span{font-size:11px;color:#6B7A99;font-family:'Unbounded',sans-serif;letter-spacing:1px}
+.a .date-chip{background:#1E2230;border:1px solid #2D3348;border-radius:20px;padding:6px 14px;font-size:11px;color:#6B7A99;font-family:'Unbounded',sans-serif;letter-spacing:1px;align-self:flex-start;margin-bottom:16px}
+.a .section-label{font-family:'Unbounded',sans-serif;font-size:10px;letter-spacing:2px;color:#6B7A99;margin-bottom:10px;margin-top:8px}
+.a .card{background:#161920;border-radius:16px;padding:18px;margin-bottom:10px;border:1px solid #2D3348}
+.a .card.accent-blue{border-left:3px solid #4F6EF7}
+.a .card.accent-amber{border-left:3px solid #F59E0B}
+.a .card.accent-green{border-left:3px solid #22C55E}
+.a .card.accent-purple{border-left:3px solid #8B5CF6}
+.a .card-title{font-family:'Unbounded',sans-serif;font-size:12px;font-weight:600;color:#F1F5F9;margin-bottom:6px}
+.a .card-sub{font-size:13px;color:#6B7A99;line-height:1.5}
+.a .card-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.a .chip{display:inline-flex;align-items:center;gap:4px;background:#4F6EF720;border-radius:20px;padding:4px 10px;font-size:10px;font-family:'Unbounded',sans-serif;letter-spacing:.5px;color:#4F6EF7;font-weight:600}
+.a .chip.amber{background:#F59E0B20;color:#F59E0B}
+.a .chip.green{background:#22C55E20;color:#22C55E}
+.a .chip.purple{background:#8B5CF620;color:#8B5CF6}
+.a .progress-row{display:flex;gap:6px;margin-top:10px}
+.a .progress-item{flex:1;background:#1E2230;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:4px}
+.a .progress-num{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:#F1F5F9}
+.a .progress-lbl{font-size:10px;color:#6B7A99;font-family:'Unbounded',sans-serif;letter-spacing:.5px}
+.a .fab{position:absolute;bottom:88px;right:20px;width:52px;height:52px;border-radius:50%;background:#4F6EF7;display:flex;align-items:center;justify-content:center;font-size:24px;color:white;box-shadow:0 4px 20px #4F6EF760;z-index:10}
+.a .nav{position:absolute;bottom:0;left:0;right:0;height:80px;background:#161920;border-top:1px solid #2D3348;display:flex;align-items:center;justify-content:space-around;padding-bottom:12px}
+.a .nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.a .nav-icon{font-size:20px;opacity:.4}
+.a .nav-icon.active{opacity:1;filter:drop-shadow(0 0 8px #4F6EF7)}
+.a .nav-label{font-family:'Unbounded',sans-serif;font-size:9px;letter-spacing:1px;color:#6B7A99}
+.a .nav-label.active{color:#4F6EF7}
+.a .nav-dot{width:4px;height:4px;border-radius:50%;background:#4F6EF7;margin-bottom:-4px}
+
+/* textarea mock */
+.a .input-mock{background:#1E2230;border:1px solid #2D3348;border-radius:10px;padding:14px;font-size:13px;color:#6B7A99;line-height:1.6;min-height:72px}
+.a .input-mock.active{border-color:#4F6EF7;color:#F1F5F9}
+.a .btn-primary{background:#4F6EF7;color:white;border-radius:12px;padding:14px;text-align:center;font-family:'Unbounded',sans-serif;font-size:11px;letter-spacing:1px;font-weight:600;margin-top:8px}
+.a .btn-ghost{border:1px solid #2D3348;color:#6B7A99;border-radius:12px;padding:13px;text-align:center;font-family:'Unbounded',sans-serif;font-size:11px;letter-spacing:1px;font-weight:600;margin-top:6px}
+
+/* framework cards */
+.a .fw-card{background:#161920;border-radius:16px;padding:18px;margin-bottom:10px;border:1px solid #2D3348;display:flex;align-items:center;gap:14px}
+.a .fw-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.a .fw-icon.blue{background:#4F6EF720}
+.a .fw-icon.purple{background:#8B5CF620}
+.a .fw-icon.amber{background:#F59E0B20}
+.a .fw-icon.green{background:#22C55E20}
+.a .fw-title{font-family:'Unbounded',sans-serif;font-size:12px;font-weight:600;color:#F1F5F9;margin-bottom:3px}
+.a .fw-sub{font-size:12px;color:#6B7A99}
+
+/* retro */
+.a .retro-sig{background:linear-gradient(135deg,#1a1f35,#1a1528);border:1px solid #2D3348;border-radius:20px;padding:20px;margin-bottom:14px}
+.a .retro-sig-title{font-family:'Unbounded',sans-serif;font-size:11px;letter-spacing:2px;color:#8B5CF6;margin-bottom:12px}
+.a .retro-bars{display:flex;flex-direction:column;gap:8px}
+.a .bar-row{display:flex;align-items:center;gap:10px}
+.a .bar-label{font-size:11px;color:#6B7A99;width:90px;flex-shrink:0}
+.a .bar-track{flex:1;height:6px;background:#2D3348;border-radius:3px;overflow:hidden}
+.a .bar-fill{height:100%;border-radius:3px}
+.a .pattern-card{background:#161920;border-radius:14px;padding:16px;margin-bottom:8px;border:1px solid #2D3348;display:flex;gap:12px}
+.a .pattern-icon{font-size:22px;flex-shrink:0;margin-top:2px}
+.a .pattern-title{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:600;color:#F1F5F9;margin-bottom:4px}
+.a .pattern-desc{font-size:12px;color:#6B7A99;line-height:1.5}
+
+/* chat */
+.a .chat-msg{margin-bottom:12px;display:flex;flex-direction:column}
+.a .chat-msg.user{align-items:flex-end}
+.a .chat-msg.ai{align-items:flex-start}
+.a .bubble{padding:12px 16px;border-radius:16px;font-size:13px;line-height:1.6;max-width:85%}
+.a .bubble.user{background:#4F6EF7;color:white;border-bottom-right-radius:4px}
+.a .bubble.ai{background:#1E2230;color:#F1F5F9;border-bottom-left-radius:4px}
+.a .chat-input-row{position:absolute;bottom:72px;left:0;right:0;padding:10px 16px;background:#161920;border-top:1px solid #2D3348;display:flex;gap:8px;align-items:center}
+.a .chat-input{flex:1;background:#1E2230;border:1px solid #2D3348;border-radius:24px;padding:10px 16px;font-size:13px;color:#F1F5F9}
+.a .chat-send{width:36px;height:36px;border-radius:50%;background:#4F6EF7;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.a .mode-row{display:flex;gap:8px;padding:12px 0 4px}
+.a .mode-pill{background:#1E2230;border:1px solid #2D3348;border-radius:20px;padding:6px 14px;font-size:10px;font-family:'Unbounded',sans-serif;letter-spacing:.5px;color:#6B7A99}
+.a .mode-pill.active{background:#4F6EF720;border-color:#4F6EF7;color:#4F6EF7}
+
+/* ========= OPTION B: Slate Blue-White (Premium Light) ========= */
+.b{background:#F4F6FC;border:1.5px solid #DDE3F0}
+.b .status{background:#F4F6FC;padding:14px 28px 0;display:flex;justify-content:space-between;align-items:center}
+.b .status span{color:#1A1D4E;font-size:12px;font-weight:600}
+.b .screen{flex:1;overflow:hidden;padding:0 20px;padding-bottom:80px;overflow-y:auto;display:flex;flex-direction:column}
+.b .topbar{padding:20px 0 8px;display:flex;align-items:center;justify-content:space-between}
+.b .topbar h2{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:700;color:#1A1D4E}
+.b .topbar span{font-size:11px;color:#7B8DB0;font-family:'Unbounded',sans-serif;letter-spacing:1px}
+.b .date-chip{background:white;border:1px solid #DDE3F0;border-radius:20px;padding:6px 14px;font-size:11px;color:#7B8DB0;font-family:'Unbounded',sans-serif;letter-spacing:1px;align-self:flex-start;margin-bottom:16px}
+.b .section-label{font-family:'Unbounded',sans-serif;font-size:10px;letter-spacing:2px;color:#7B8DB0;margin-bottom:10px;margin-top:8px}
+.b .card{background:white;border-radius:16px;padding:18px;margin-bottom:10px;box-shadow:0 2px 12px #1A1D4E12;border:1px solid #DDE3F0}
+.b .card.accent-blue{border-left:3px solid #4361EE}
+.b .card.accent-amber{border-left:3px solid #F59E0B}
+.b .card.accent-green{border-left:3px solid #10B981}
+.b .card.accent-purple{border-left:3px solid #7C3AED}
+.b .card-title{font-family:'Unbounded',sans-serif;font-size:12px;font-weight:600;color:#1A1D4E;margin-bottom:6px}
+.b .card-sub{font-size:13px;color:#7B8DB0;line-height:1.5}
+.b .chip{display:inline-flex;align-items:center;gap:4px;background:#EEF2FF;border-radius:20px;padding:4px 10px;font-size:10px;font-family:'Unbounded',sans-serif;letter-spacing:.5px;color:#4361EE;font-weight:600}
+.b .chip.amber{background:#FFF7ED;color:#D97706}
+.b .chip.green{background:#ECFDF5;color:#059669}
+.b .chip.purple{background:#F5F3FF;color:#7C3AED}
+.b .progress-row{display:flex;gap:6px;margin-top:10px}
+.b .progress-item{flex:1;background:#F4F6FC;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:4px;border:1px solid #DDE3F0}
+.b .progress-num{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:#1A1D4E}
+.b .progress-lbl{font-size:10px;color:#7B8DB0;font-family:'Unbounded',sans-serif;letter-spacing:.5px}
+.b .fab{position:absolute;bottom:88px;right:20px;width:52px;height:52px;border-radius:50%;background:#4361EE;display:flex;align-items:center;justify-content:center;font-size:24px;color:white;box-shadow:0 4px 20px #4361EE60;z-index:10}
+.b .nav{position:absolute;bottom:0;left:0;right:0;height:80px;background:white;border-top:1px solid #DDE3F0;display:flex;align-items:center;justify-content:space-around;padding-bottom:12px}
+.b .nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.b .nav-icon{font-size:20px;opacity:.3}
+.b .nav-icon.active{opacity:1}
+.b .nav-label{font-family:'Unbounded',sans-serif;font-size:9px;letter-spacing:1px;color:#7B8DB0}
+.b .nav-label.active{color:#4361EE}
+.b .nav-dot{width:4px;height:4px;border-radius:50%;background:#4361EE;margin-bottom:-4px}
+.b .input-mock{background:#F4F6FC;border:1px solid #DDE3F0;border-radius:10px;padding:14px;font-size:13px;color:#7B8DB0;line-height:1.6;min-height:72px}
+.b .input-mock.active{border-color:#4361EE;color:#1A1D4E}
+.b .btn-primary{background:#4361EE;color:white;border-radius:12px;padding:14px;text-align:center;font-family:'Unbounded',sans-serif;font-size:11px;letter-spacing:1px;font-weight:600;margin-top:8px}
+.b .btn-ghost{border:1px solid #DDE3F0;color:#7B8DB0;border-radius:12px;padding:13px;text-align:center;font-family:'Unbounded',sans-serif;font-size:11px;letter-spacing:1px;font-weight:600;margin-top:6px}
+.b .fw-card{background:white;border-radius:16px;padding:18px;margin-bottom:10px;border:1px solid #DDE3F0;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px #1A1D4E08}
+.b .fw-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.b .fw-icon.blue{background:#EEF2FF}
+.b .fw-icon.purple{background:#F5F3FF}
+.b .fw-icon.amber{background:#FFF7ED}
+.b .fw-icon.green{background:#ECFDF5}
+.b .fw-title{font-family:'Unbounded',sans-serif;font-size:12px;font-weight:600;color:#1A1D4E;margin-bottom:3px}
+.b .fw-sub{font-size:12px;color:#7B8DB0}
+
+/* ========= OPTION C: True OLED Minimal ========= */
+.c{background:#000000;border:1.5px solid #1a1a1a}
+.c .status{background:#000;padding:14px 28px 0;display:flex;justify-content:space-between;align-items:center}
+.c .status span{color:#ffffff;font-size:12px;font-weight:600}
+.c .screen{flex:1;overflow:hidden;padding:0 20px;padding-bottom:80px;overflow-y:auto;display:flex;flex-direction:column}
+.c .topbar{padding:20px 0 8px;display:flex;align-items:center;justify-content:space-between}
+.c .topbar h2{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:700;color:#ffffff}
+.c .topbar span{font-size:11px;color:#555;font-family:'Unbounded',sans-serif;letter-spacing:1px}
+.c .date-chip{background:#111;border:1px solid #222;border-radius:20px;padding:6px 14px;font-size:11px;color:#555;font-family:'Unbounded',sans-serif;letter-spacing:1px;align-self:flex-start;margin-bottom:16px}
+.c .section-label{font-family:'Unbounded',sans-serif;font-size:10px;letter-spacing:2px;color:#444;margin-bottom:10px;margin-top:8px}
+.c .card{background:#111;border-radius:16px;padding:18px;margin-bottom:10px;border:1px solid #1E1E1E}
+.c .card.accent-blue{border-left:3px solid #3B82F6}
+.c .card.accent-amber{border-left:3px solid #F59E0B}
+.c .card.accent-green{border-left:3px solid #22C55E}
+.c .card.accent-purple{border-left:3px solid #A855F7}
+.c .card-title{font-family:'Unbounded',sans-serif;font-size:12px;font-weight:600;color:#ffffff;margin-bottom:6px}
+.c .card-sub{font-size:13px;color:#666;line-height:1.5}
+.c .chip{display:inline-flex;align-items:center;gap:4px;background:#1a2040;border-radius:20px;padding:4px 10px;font-size:10px;font-family:'Unbounded',sans-serif;letter-spacing:.5px;color:#3B82F6;font-weight:600}
+.c .chip.amber{background:#2a1f00;color:#F59E0B}
+.c .chip.green{background:#002a1a;color:#22C55E}
+.c .chip.purple{background:#20102a;color:#A855F7}
+.c .progress-row{display:flex;gap:6px;margin-top:10px}
+.c .progress-item{flex:1;background:#111;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:4px;border:1px solid #1E1E1E}
+.c .progress-num{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:#fff}
+.c .progress-lbl{font-size:10px;color:#444;font-family:'Unbounded',sans-serif;letter-spacing:.5px}
+.c .fab{position:absolute;bottom:88px;right:20px;width:52px;height:52px;border-radius:50%;background:#3B82F6;display:flex;align-items:center;justify-content:center;font-size:24px;color:white;z-index:10}
+.c .nav{position:absolute;bottom:0;left:0;right:0;height:80px;background:#000;border-top:1px solid #1a1a1a;display:flex;align-items:center;justify-content:space-around;padding-bottom:12px}
+.c .nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.c .nav-icon{font-size:20px;opacity:.25}
+.c .nav-icon.active{opacity:1}
+.c .nav-label{font-family:'Unbounded',sans-serif;font-size:9px;letter-spacing:1px;color:#444}
+.c .nav-label.active{color:#3B82F6}
+.c .nav-dot{width:4px;height:4px;border-radius:50%;background:#3B82F6;margin-bottom:-4px}
+.c .input-mock{background:#111;border:1px solid #222;border-radius:10px;padding:14px;font-size:13px;color:#555;line-height:1.6;min-height:72px}
+.c .btn-primary{background:#3B82F6;color:white;border-radius:12px;padding:14px;text-align:center;font-family:'Unbounded',sans-serif;font-size:11px;letter-spacing:1px;font-weight:600;margin-top:8px}
+.c .fw-card{background:#111;border-radius:16px;padding:18px;margin-bottom:10px;border:1px solid #1E1E1E;display:flex;align-items:center;gap:14px}
+.c .fw-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.c .fw-icon.blue{background:#1a2040}
+.c .fw-icon.purple{background:#20102a}
+.c .fw-icon.amber{background:#2a1f00}
+.c .fw-icon.green{background:#002a1a}
+.c .fw-title{font-family:'Unbounded',sans-serif;font-size:12px;font-weight:600;color:#fff;margin-bottom:3px}
+.c .fw-sub{font-size:12px;color:#555}
+
+/* ========= OPTION D: Deep Navy + Gold ========= */
+.d{background:#0B0F1A;border:1.5px solid #1E2840}
+.d .status{background:#0B0F1A;padding:14px 28px 0;display:flex;justify-content:space-between;align-items:center}
+.d .status span{color:#E8E4D9;font-size:12px;font-weight:600}
+.d .screen{flex:1;overflow:hidden;padding:0 20px;padding-bottom:80px;overflow-y:auto;display:flex;flex-direction:column}
+.d .topbar{padding:20px 0 8px;display:flex;align-items:center;justify-content:space-between}
+.d .topbar h2{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:700;color:#E8E4D9}
+.d .topbar span{font-size:11px;color:#4A5568;font-family:'Unbounded',sans-serif;letter-spacing:1px}
+.d .date-chip{background:#131828;border:1px solid #1E2840;border-radius:20px;padding:6px 14px;font-size:11px;color:#4A5568;font-family:'Unbounded',sans-serif;letter-spacing:1px;align-self:flex-start;margin-bottom:16px}
+.d .section-label{font-family:'Unbounded',sans-serif;font-size:10px;letter-spacing:2px;color:#4A5568;margin-bottom:10px;margin-top:8px}
+.d .card{background:#131828;border-radius:16px;padding:18px;margin-bottom:10px;border:1px solid #1E2840}
+.d .card.accent-blue{border-left:3px solid #E8B84B}
+.d .card.accent-amber{border-left:3px solid #E8B84B}
+.d .card.accent-green{border-left:3px solid #4ADE80}
+.d .card.accent-purple{border-left:3px solid #A78BFA}
+.d .card-title{font-family:'Unbounded',sans-serif;font-size:12px;font-weight:600;color:#E8E4D9;margin-bottom:6px}
+.d .card-sub{font-size:13px;color:#4A5568;line-height:1.5}
+.d .chip{display:inline-flex;align-items:center;gap:4px;background:#E8B84B20;border-radius:20px;padding:4px 10px;font-size:10px;font-family:'Unbounded',sans-serif;letter-spacing:.5px;color:#E8B84B;font-weight:600}
+.d .chip.amber{background:#E8B84B20;color:#E8B84B}
+.d .chip.green{background:#4ADE8020;color:#4ADE80}
+.d .chip.purple{background:#A78BFA20;color:#A78BFA}
+.d .progress-row{display:flex;gap:6px;margin-top:10px}
+.d .progress-item{flex:1;background:#0B0F1A;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:4px;border:1px solid #1E2840}
+.d .progress-num{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:#E8B84B}
+.d .progress-lbl{font-size:10px;color:#4A5568;font-family:'Unbounded',sans-serif;letter-spacing:.5px}
+.d .fab{position:absolute;bottom:88px;right:20px;width:52px;height:52px;border-radius:50%;background:#E8B84B;display:flex;align-items:center;justify-content:center;font-size:24px;color:#0B0F1A;z-index:10;font-weight:700}
+.d .nav{position:absolute;bottom:0;left:0;right:0;height:80px;background:#0D1220;border-top:1px solid #1E2840;display:flex;align-items:center;justify-content:space-around;padding-bottom:12px}
+.d .nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.d .nav-icon{font-size:20px;opacity:.3}
+.d .nav-icon.active{opacity:1}
+.d .nav-label{font-family:'Unbounded',sans-serif;font-size:9px;letter-spacing:1px;color:#4A5568}
+.d .nav-label.active{color:#E8B84B}
+.d .nav-dot{width:4px;height:4px;border-radius:50%;background:#E8B84B;margin-bottom:-4px}
+.d .input-mock{background:#0B0F1A;border:1px solid #1E2840;border-radius:10px;padding:14px;font-size:13px;color:#4A5568;line-height:1.6;min-height:72px}
+.d .btn-primary{background:#E8B84B;color:#0B0F1A;border-radius:12px;padding:14px;text-align:center;font-family:'Unbounded',sans-serif;font-size:11px;letter-spacing:1px;font-weight:700;margin-top:8px}
+.d .fw-card{background:#131828;border-radius:16px;padding:18px;margin-bottom:10px;border:1px solid #1E2840;display:flex;align-items:center;gap:14px}
+.d .fw-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.d .fw-icon.blue{background:#E8B84B20}
+.d .fw-icon.purple{background:#A78BFA20}
+.d .fw-icon.amber{background:#E8B84B20}
+.d .fw-icon.green{background:#4ADE8020}
+.d .fw-title{font-family:'Unbounded',sans-serif;font-size:12px;font-weight:600;color:#E8E4D9;margin-bottom:3px}
+.d .fw-sub{font-size:12px;color:#4A5568}
+</style>
+</head>
+<body>
+
+<h1>WorkWrite — Design Options</h1>
+
+<!-- ============================================================
+     ROW 1: TODAY screens (all 4 options)
+     ============================================================ -->
+<div class="row">
+
+  <!-- OPTION A TODAY -->
+  <div class="col">
+    <div class="label">Option A — Deep Dark</div>
+    <div class="phone a">
+      <div class="phone-inner">
+        <div class="status"><span>9:41</span><span>●●●  ▶  🔋</span></div>
+        <div class="screen">
+          <div class="topbar"><h2>TODAY</h2><span class="chip">WK 17</span></div>
+          <div class="date-chip">SAT · APR 26 · 2026</div>
+          <div class="section-label">MORNING CHECK-IN</div>
+          <div class="card accent-blue">
+            <div class="card-row"><div class="card-title">Start of Day</div><div class="chip green">✓ DONE</div></div>
+            <div class="card-sub">Priorities logged · Energy: High · 2 risks flagged</div>
+            <div class="progress-row">
+              <div class="progress-item"><div class="progress-num">3</div><div class="progress-lbl">PRIORITIES</div></div>
+              <div class="progress-item"><div class="progress-num">2</div><div class="progress-lbl">RISKS</div></div>
+              <div class="progress-item"><div class="progress-num">85%</div><div class="progress-lbl">ENERGY</div></div>
+            </div>
+          </div>
+          <div class="section-label">SITUATIONS TODAY</div>
+          <div class="card accent-amber">
+            <div class="card-row"><div class="card-title">GL Reconciliation Error</div><div class="chip amber">⚠ OPEN</div></div>
+            <div class="card-sub">Duplicate journal entry found in Accounts Payable. Root cause unclear — needs 5 Whys.</div>
+          </div>
+          <div class="card accent-amber">
+            <div class="card-row"><div class="card-title">Report Deadline Missed</div><div class="chip purple">KAIZEN</div></div>
+            <div class="card-sub">Variance analysis delivered 2 hrs late due to data dependency on upstream team.</div>
+          </div>
+          <div class="section-label">END OF DAY</div>
+          <div class="card">
+            <div class="card-title">Evening Reflection</div>
+            <div class="input-mock">What got done? What got in the way?...</div>
+            <div class="btn-primary">BEGIN EOD CHECK-IN</div>
+          </div>
+        </div>
+        <div class="fab">+</div>
+        <div class="nav">
+          <div class="nav-item"><div class="nav-dot"></div><div class="nav-icon active">📋</div><div class="nav-label active">TODAY</div></div>
+          <div class="nav-item"><div class="nav-icon">💬</div><div class="nav-label">CHAT</div></div>
+          <div class="nav-item"><div class="nav-icon">⚙️</div><div class="nav-label">FRAMEWORKS</div></div>
+          <div class="nav-item"><div class="nav-icon">📈</div><div class="nav-label">RETRO</div></div>
+          <div class="nav-item"><div class="nav-icon">⋯</div><div class="nav-label">MORE</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION B TODAY -->
+  <div class="col">
+    <div class="label">Option B — Light Premium</div>
+    <div class="phone b">
+      <div class="phone-inner">
+        <div class="status"><span>9:41</span><span>●●●  ▶  🔋</span></div>
+        <div class="screen">
+          <div class="topbar"><h2>TODAY</h2><span class="chip">WK 17</span></div>
+          <div class="date-chip">SAT · APR 26 · 2026</div>
+          <div class="section-label">MORNING CHECK-IN</div>
+          <div class="card accent-blue">
+            <div class="card-row"><div class="card-title">Start of Day</div><div class="chip green">✓ DONE</div></div>
+            <div class="card-sub">Priorities logged · Energy: High · 2 risks flagged</div>
+            <div class="progress-row">
+              <div class="progress-item"><div class="progress-num">3</div><div class="progress-lbl">PRIORITIES</div></div>
+              <div class="progress-item"><div class="progress-num">2</div><div class="progress-lbl">RISKS</div></div>
+              <div class="progress-item"><div class="progress-num">85%</div><div class="progress-lbl">ENERGY</div></div>
+            </div>
+          </div>
+          <div class="section-label">SITUATIONS TODAY</div>
+          <div class="card accent-amber">
+            <div class="card-row"><div class="card-title">GL Reconciliation Error</div><div class="chip amber">⚠ OPEN</div></div>
+            <div class="card-sub">Duplicate journal entry found in Accounts Payable. Root cause unclear.</div>
+          </div>
+          <div class="card accent-amber">
+            <div class="card-row"><div class="card-title">Report Deadline Missed</div><div class="chip purple">KAIZEN</div></div>
+            <div class="card-sub">Variance analysis delivered 2 hrs late due to data dependency.</div>
+          </div>
+          <div class="section-label">END OF DAY</div>
+          <div class="card">
+            <div class="card-title">Evening Reflection</div>
+            <div class="input-mock">What got done? What got in the way?...</div>
+            <div class="btn-primary">BEGIN EOD CHECK-IN</div>
+          </div>
+        </div>
+        <div class="fab">+</div>
+        <div class="nav">
+          <div class="nav-item"><div class="nav-dot"></div><div class="nav-icon active">📋</div><div class="nav-label active">TODAY</div></div>
+          <div class="nav-item"><div class="nav-icon">💬</div><div class="nav-label">CHAT</div></div>
+          <div class="nav-item"><div class="nav-icon">⚙️</div><div class="nav-label">FRAMEWORKS</div></div>
+          <div class="nav-item"><div class="nav-icon">📈</div><div class="nav-label">RETRO</div></div>
+          <div class="nav-item"><div class="nav-icon">⋯</div><div class="nav-label">MORE</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION C TODAY -->
+  <div class="col">
+    <div class="label">Option C — OLED Minimal</div>
+    <div class="phone c">
+      <div class="phone-inner">
+        <div class="status"><span>9:41</span><span>●●●  ▶  🔋</span></div>
+        <div class="screen">
+          <div class="topbar"><h2>TODAY</h2><span class="chip">WK 17</span></div>
+          <div class="date-chip">SAT · APR 26 · 2026</div>
+          <div class="section-label">MORNING CHECK-IN</div>
+          <div class="card accent-blue">
+            <div class="card-row"><div class="card-title">Start of Day</div><div class="chip green">✓ DONE</div></div>
+            <div class="card-sub">Priorities logged · Energy: High · 2 risks flagged</div>
+            <div class="progress-row">
+              <div class="progress-item"><div class="progress-num">3</div><div class="progress-lbl">PRIORITIES</div></div>
+              <div class="progress-item"><div class="progress-num">2</div><div class="progress-lbl">RISKS</div></div>
+              <div class="progress-item"><div class="progress-num">85%</div><div class="progress-lbl">ENERGY</div></div>
+            </div>
+          </div>
+          <div class="section-label">SITUATIONS TODAY</div>
+          <div class="card accent-amber">
+            <div class="card-row"><div class="card-title">GL Reconciliation Error</div><div class="chip amber">⚠ OPEN</div></div>
+            <div class="card-sub">Duplicate journal entry found in Accounts Payable.</div>
+          </div>
+          <div class="card accent-amber">
+            <div class="card-row"><div class="card-title">Report Deadline Missed</div><div class="chip purple">KAIZEN</div></div>
+            <div class="card-sub">Variance analysis delivered 2 hrs late due to data dependency.</div>
+          </div>
+          <div class="section-label">END OF DAY</div>
+          <div class="card">
+            <div class="card-title">Evening Reflection</div>
+            <div class="input-mock">What got done? What got in the way?...</div>
+            <div class="btn-primary">BEGIN EOD CHECK-IN</div>
+          </div>
+        </div>
+        <div class="fab">+</div>
+        <div class="nav">
+          <div class="nav-item"><div class="nav-dot"></div><div class="nav-icon active">📋</div><div class="nav-label active">TODAY</div></div>
+          <div class="nav-item"><div class="nav-icon">💬</div><div class="nav-label">CHAT</div></div>
+          <div class="nav-item"><div class="nav-icon">⚙️</div><div class="nav-label">FRAMEWORKS</div></div>
+          <div class="nav-item"><div class="nav-icon">📈</div><div class="nav-label">RETRO</div></div>
+          <div class="nav-item"><div class="nav-icon">⋯</div><div class="nav-label">MORE</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION D TODAY -->
+  <div class="col">
+    <div class="label">Option D — Navy + Gold</div>
+    <div class="phone d">
+      <div class="phone-inner">
+        <div class="status"><span>9:41</span><span>●●●  ▶  🔋</span></div>
+        <div class="screen">
+          <div class="topbar"><h2>TODAY</h2><span class="chip">WK 17</span></div>
+          <div class="date-chip">SAT · APR 26 · 2026</div>
+          <div class="section-label">MORNING CHECK-IN</div>
+          <div class="card accent-blue">
+            <div class="card-row"><div class="card-title">Start of Day</div><div class="chip green">✓ DONE</div></div>
+            <div class="card-sub">Priorities logged · Energy: High · 2 risks flagged</div>
+            <div class="progress-row">
+              <div class="progress-item"><div class="progress-num">3</div><div class="progress-lbl">PRIORITIES</div></div>
+              <div class="progress-item"><div class="progress-num">2</div><div class="progress-lbl">RISKS</div></div>
+              <div class="progress-item"><div class="progress-num">85%</div><div class="progress-lbl">ENERGY</div></div>
+            </div>
+          </div>
+          <div class="section-label">SITUATIONS TODAY</div>
+          <div class="card accent-amber">
+            <div class="card-row"><div class="card-title">GL Reconciliation Error</div><div class="chip amber">⚠ OPEN</div></div>
+            <div class="card-sub">Duplicate journal entry found in Accounts Payable.</div>
+          </div>
+          <div class="card accent-amber">
+            <div class="card-row"><div class="card-title">Report Deadline Missed</div><div class="chip">KAIZEN</div></div>
+            <div class="card-sub">Variance analysis delivered 2 hrs late due to data dependency.</div>
+          </div>
+          <div class="section-label">END OF DAY</div>
+          <div class="card">
+            <div class="card-title">Evening Reflection</div>
+            <div class="input-mock">What got done? What got in the way?...</div>
+            <div class="btn-primary">BEGIN EOD CHECK-IN</div>
+          </div>
+        </div>
+        <div class="fab">+</div>
+        <div class="nav">
+          <div class="nav-item"><div class="nav-dot"></div><div class="nav-icon active">📋</div><div class="nav-label active">TODAY</div></div>
+          <div class="nav-item"><div class="nav-icon">💬</div><div class="nav-label">CHAT</div></div>
+          <div class="nav-item"><div class="nav-icon">⚙️</div><div class="nav-label">FRAMEWORKS</div></div>
+          <div class="nav-item"><div class="nav-icon">📈</div><div class="nav-label">RETRO</div></div>
+          <div class="nav-item"><div class="nav-icon">⋯</div><div class="nav-label">MORE</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ROW 2: FRAMEWORKS (A) + CHAT (A) + RETRO (A)
+     ============================================================ -->
+<div class="row">
+
+  <!-- FRAMEWORKS screen Option A -->
+  <div class="col">
+    <div class="label">Frameworks — Option A</div>
+    <div class="phone a">
+      <div class="phone-inner">
+        <div class="status"><span>9:41</span><span>●●●  ▶  🔋</span></div>
+        <div class="screen">
+          <div class="topbar"><h2>FRAMEWORKS</h2></div>
+          <div style="font-size:13px;color:#6B7A99;margin-bottom:16px;line-height:1.5">Pick a framework to analyze your situation or run a structured session.</div>
+          <div class="fw-card">
+            <div class="fw-icon blue">🔍</div>
+            <div><div class="fw-title">5 WHYS</div><div class="fw-sub">Drill to root cause in 5 steps</div></div>
+          </div>
+          <div class="fw-card">
+            <div class="fw-icon purple">📊</div>
+            <div><div class="fw-title">DMAIC · SIX SIGMA</div><div class="fw-sub">Define · Measure · Analyze · Improve · Control</div></div>
+          </div>
+          <div class="fw-card">
+            <div class="fw-icon amber">🌊</div>
+            <div><div class="fw-title">KAIZEN EVENT</div><div class="fw-sub">Rapid improvement workshop facilitator</div></div>
+          </div>
+          <div class="fw-card">
+            <div class="fw-icon green">🔄</div>
+            <div><div class="fw-title">SCRUM RETRO</div><div class="fw-sub">What worked · What didn't · Next steps</div></div>
+          </div>
+          <div class="fw-card">
+            <div class="fw-icon blue">📐</div>
+            <div><div class="fw-title">PDCA CYCLE</div><div class="fw-sub">Plan · Do · Check · Act</div></div>
+          </div>
+          <div class="fw-card">
+            <div class="fw-icon purple">🎯</div>
+            <div><div class="fw-title">THEORY OF CONSTRAINTS</div><div class="fw-sub">Find and break your bottleneck</div></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="nav-item"><div class="nav-icon">📋</div><div class="nav-label">TODAY</div></div>
+          <div class="nav-item"><div class="nav-icon">💬</div><div class="nav-label">CHAT</div></div>
+          <div class="nav-item"><div class="nav-dot"></div><div class="nav-icon active">⚙️</div><div class="nav-label active">FRAMEWORKS</div></div>
+          <div class="nav-item"><div class="nav-icon">📈</div><div class="nav-label">RETRO</div></div>
+          <div class="nav-item"><div class="nav-icon">⋯</div><div class="nav-label">MORE</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT screen Option A -->
+  <div class="col">
+    <div class="label">Chat — Option A</div>
+    <div class="phone a">
+      <div class="phone-inner">
+        <div class="status"><span>9:41</span><span>●●●  ▶  🔋</span></div>
+        <div class="screen">
+          <div class="topbar"><h2>CHAT</h2></div>
+          <div class="mode-row">
+            <div class="mode-pill active">WORK COACH</div>
+            <div class="mode-pill">TRANSCRIPT</div>
+            <div class="mode-pill">DEEP DIVE</div>
+          </div>
+          <div style="height:12px"></div>
+          <div class="chat-msg ai">
+            <div class="bubble ai">You have 2 open situations this week. The GL reconciliation error keeps appearing — want to run a 5 Whys on it?</div>
+          </div>
+          <div class="chat-msg user">
+            <div class="bubble user">Yes, let's do that. The error happened again during month-end close.</div>
+          </div>
+          <div class="chat-msg ai">
+            <div class="bubble ai">Got it. Let's start.<br/><br/><strong>Why #1:</strong> Why did the duplicate entry appear in AP?</div>
+          </div>
+          <div class="chat-msg user">
+            <div class="bubble user">Because the upload wasn't validated before posting.</div>
+          </div>
+          <div class="chat-msg ai">
+            <div class="bubble ai"><strong>Why #2:</strong> Why wasn't the upload validated before posting?</div>
+          </div>
+          <div style="height:80px"></div>
+        </div>
+        <div class="chat-input-row">
+          <div class="chat-input" style="color:#6B7A99">Reply...</div>
+          <div class="chat-send">↑</div>
+        </div>
+        <div class="nav">
+          <div class="nav-item"><div class="nav-icon">📋</div><div class="nav-label">TODAY</div></div>
+          <div class="nav-item"><div class="nav-dot"></div><div class="nav-icon active">💬</div><div class="nav-label active">CHAT</div></div>
+          <div class="nav-item"><div class="nav-icon">⚙️</div><div class="nav-label">FRAMEWORKS</div></div>
+          <div class="nav-item"><div class="nav-icon">📈</div><div class="nav-label">RETRO</div></div>
+          <div class="nav-item"><div class="nav-icon">⋯</div><div class="nav-label">MORE</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RETRO screen Option A -->
+  <div class="col">
+    <div class="label">Retro — Option A</div>
+    <div class="phone a">
+      <div class="phone-inner">
+        <div class="status"><span>9:41</span><span>●●●  ▶  🔋</span></div>
+        <div class="screen">
+          <div class="topbar"><h2>RETRO</h2><span class="chip purple">WK 17</span></div>
+          <div class="retro-sig">
+            <div class="retro-sig-title">BEHAVIORAL WORK SIGNATURE</div>
+            <div class="retro-bars">
+              <div class="bar-row">
+                <div class="bar-label" style="font-size:11px;color:#6B7A99">Rework rate</div>
+                <div class="bar-track"><div class="bar-fill" style="width:62%;background:#F59E0B"></div></div>
+                <div style="font-size:11px;color:#6B7A99;width:32px;text-align:right">↓18%</div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label" style="font-size:11px;color:#6B7A99">Focus depth</div>
+                <div class="bar-track"><div class="bar-fill" style="width:78%;background:#4F6EF7"></div></div>
+                <div style="font-size:11px;color:#4F6EF7;width:32px;text-align:right">↑12%</div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label" style="font-size:11px;color:#6B7A99">Error recur.</div>
+                <div class="bar-track"><div class="bar-fill" style="width:38%;background:#22C55E"></div></div>
+                <div style="font-size:11px;color:#22C55E;width:32px;text-align:right">↓31%</div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label" style="font-size:11px;color:#6B7A99">Self-accuracy</div>
+                <div class="bar-track"><div class="bar-fill" style="width:55%;background:#8B5CF6"></div></div>
+                <div style="font-size:11px;color:#8B5CF6;width:32px;text-align:right">+6pt</div>
+              </div>
+            </div>
+          </div>
+          <div class="section-label">PATTERNS THIS WEEK</div>
+          <div class="pattern-card">
+            <div class="pattern-icon">🔁</div>
+            <div><div class="pattern-title">RECURRING: UPSTREAM DEPENDENCY</div><div class="pattern-desc">3 of your 5 delays trace back to waiting on data from another team. Kaizen candidate.</div></div>
+          </div>
+          <div class="pattern-card">
+            <div class="pattern-icon">⚡</div>
+            <div><div class="pattern-title">PEAK: TUESDAY MORNINGS</div><div class="pattern-desc">Your highest accuracy work happens Tue 8–11am. Protect this window.</div></div>
+          </div>
+          <div class="pattern-card">
+            <div class="pattern-icon">⚠️</div>
+            <div><div class="pattern-title">RISK: POST CLOSE FATIGUE</div><div class="pattern-desc">Error rate spikes 2 days after month-end close. Build in a buffer day.</div></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="nav-item"><div class="nav-icon">📋</div><div class="nav-label">TODAY</div></div>
+          <div class="nav-item"><div class="nav-icon">💬</div><div class="nav-label">CHAT</div></div>
+          <div class="nav-item"><div class="nav-icon">⚙️</div><div class="nav-label">FRAMEWORKS</div></div>
+          <div class="nav-item"><div class="nav-dot"></div><div class="nav-icon active">📈</div><div class="nav-label active">RETRO</div></div>
+          <div class="nav-item"><div class="nav-icon">⋯</div><div class="nav-label">MORE</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FRAMEWORKS Option D -->
+  <div class="col">
+    <div class="label">Frameworks — Option D</div>
+    <div class="phone d">
+      <div class="phone-inner">
+        <div class="status"><span>9:41</span><span>●●●  ▶  🔋</span></div>
+        <div class="screen">
+          <div class="topbar"><h2>FRAMEWORKS</h2></div>
+          <div style="font-size:13px;color:#4A5568;margin-bottom:16px;line-height:1.5">Pick a framework to analyze your situation or run a structured session.</div>
+          <div class="fw-card">
+            <div class="fw-icon blue">🔍</div>
+            <div><div class="fw-title">5 WHYS</div><div class="fw-sub">Drill to root cause in 5 steps</div></div>
+          </div>
+          <div class="fw-card">
+            <div class="fw-icon purple">📊</div>
+            <div><div class="fw-title">DMAIC · SIX SIGMA</div><div class="fw-sub">Define · Measure · Analyze · Improve · Control</div></div>
+          </div>
+          <div class="fw-card">
+            <div class="fw-icon amber">🌊</div>
+            <div><div class="fw-title">KAIZEN EVENT</div><div class="fw-sub">Rapid improvement workshop facilitator</div></div>
+          </div>
+          <div class="fw-card">
+            <div class="fw-icon green">🔄</div>
+            <div><div class="fw-title">SCRUM RETRO</div><div class="fw-sub">What worked · What didn't · Next steps</div></div>
+          </div>
+          <div class="fw-card">
+            <div class="fw-icon blue">📐</div>
+            <div><div class="fw-title">PDCA CYCLE</div><div class="fw-sub">Plan · Do · Check · Act</div></div>
+          </div>
+          <div class="fw-card">
+            <div class="fw-icon purple">🎯</div>
+            <div><div class="fw-title">THEORY OF CONSTRAINTS</div><div class="fw-sub">Find and break your bottleneck</div></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="nav-item"><div class="nav-icon">📋</div><div class="nav-label">TODAY</div></div>
+          <div class="nav-item"><div class="nav-icon">💬</div><div class="nav-label">CHAT</div></div>
+          <div class="nav-item"><div class="nav-dot"></div><div class="nav-icon active">⚙️</div><div class="nav-label active">FRAMEWORKS</div></div>
+          <div class="nav-item"><div class="nav-icon">📈</div><div class="nav-label">RETRO</div></div>
+          <div class="nav-item"><div class="nav-icon">⋯</div><div class="nav-label">MORE</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
