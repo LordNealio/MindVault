@@ -13,6 +13,8 @@ import { OnboardingFlow } from "./features/onboarding/OnboardingFlow.jsx";
 import { GuideModal } from "./features/guide/GuideModal.jsx";
 import { CustomQuestionsManager, CustomQuestionsSection } from "./features/questions/CustomQuestionsManager.jsx";
 import { isSectionVisible } from "./features/questions/customQuestions.js";
+import { trackEvent } from "./lib/metrics.js";
+import { MetricsScreen } from "./features/MetricsScreen.jsx";
 
 // ── FONTS ─────────────────────────────────────────────────
 (() => {
@@ -2060,7 +2062,7 @@ function ApiKeyCard({ dKey, setDKey }) {
 }
 
 // ── SETTINGS ──────────────────────────────────────────────
-function SettingsScreen({apiKey,setApiKey,goal,setGoal,entries,onExport,accessToken,setAccessToken,pinSetupComplete,onDisablePin,onOpenGuide,onResetOnboarding}) {
+function SettingsScreen({apiKey,setApiKey,goal,setGoal,entries,onExport,accessToken,setAccessToken,pinSetupComplete,onDisablePin,onOpenGuide,onResetOnboarding,onOpenMetrics}) {
   const [dKey,setDKey]=useState(apiKey);
   const [dGoal,setDGoal]=useState(String(goal));
   const [dToken,setDToken]=useState(accessToken);
@@ -2242,6 +2244,24 @@ function SettingsScreen({apiKey,setApiKey,goal,setGoal,entries,onExport,accessTo
           </div>
         </button>
 
+        {/* ── Metrics Dashboard ── */}
+        <button onClick={onOpenMetrics}
+          style={{width:"100%",background:D.bk,borderRadius:14,padding:"14px 16px",
+            display:"flex",alignItems:"center",gap:14,cursor:"pointer",border:"none",
+            boxShadow:"0 4px 18px rgba(0,0,0,.14)"}}>
+          <div style={{width:38,height:38,borderRadius:10,flexShrink:0,
+            background:"#5B8AF0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>
+            📊
+          </div>
+          <div style={{textAlign:"left",flex:1}}>
+            <div style={{fontFamily:"'Unbounded',monospace",fontSize:10,fontWeight:900,
+              color:"#5B8AF0",letterSpacing:".06em"}}>METRICS</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,.55)",marginTop:2}}>
+              View usage analytics (Ctrl+Shift+M) →
+            </div>
+          </div>
+        </button>
+
         <Card>
           <div style={{padding:"14px"}}>
             <SLabel style={{marginBottom:4}}>Orpheus Access Token</SLabel>
@@ -2405,6 +2425,7 @@ export default function App() {
   const [pinUnlocked,setPinUnlocked]=useState(false);
   const [onboardingComplete,setOnboardingComplete]=useState(()=>localStorage.getItem("mindwrite_onboarding_complete")==="true");
   const [guideOpen,setGuideOpen]=useState(false);
+  const [metricsOpen,setMetricsOpen]=useState(false);
   const entryUpdateRef = useRef(null); // pending IDB save from updateEntry
 
   const date = toISO();
@@ -2421,6 +2442,8 @@ export default function App() {
       setEntries(sorted);
       const m = await getManifest().catch(()=>null);
       if (!m) await updateManifest(sorted, false).catch(()=>{});
+      // Track app open
+      trackEvent("app_open", "app").catch(()=>{});
     })();
   },[]);
 
@@ -2436,11 +2459,26 @@ export default function App() {
     const handleVisibility = () => {
       if (document.hidden && pinSetupComplete) {
         setPinUnlocked(false); // Lock when tab becomes hidden
+      } else if (!document.hidden) {
+        // Track app open when coming back to focus
+        trackEvent("app_open", "app").catch(()=>{});
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   },[pinSetupComplete]);
+
+  // Keyboard shortcut for metrics dashboard (Ctrl+Shift+M)
+  useEffect(()=>{
+    const handleKeyPress = (e) => {
+      if (e.ctrlKey && e.shiftKey && e.code === "KeyM") {
+        e.preventDefault();
+        setMetricsOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  },[]);
 
   useEffect(()=>{
     const handler = e => setEntries(e.detail||[]);
@@ -2491,6 +2529,8 @@ export default function App() {
       upsert(field,{...data,...analysis});
       setSavedMsg(true); setTimeout(()=>setSavedMsg(false),2500);
       setMode("template");
+      // Track entry creation
+      trackEvent("entry_created", "journal", { section: field }).catch(()=>{});
       setTimeout(async()=>{
         const current=await idb.getAll(S.entries).catch(()=>[]);
         await updateManifest(current, false).catch(()=>{});
@@ -2520,13 +2560,34 @@ export default function App() {
   };
 
   const handleOpenMeditationFromOnboarding=()=>{
-    // Opens meditation but keeps onboarding flow in place
-    // User must continue onboarding after meditation
-    setMode("guided");
-    setTab("today");
+    // Opens Jose Silva YouTube channel in new tab
+    window.open("https://www.youtube.com/@SilvaMethodOfficial", "_blank");
   };
 
   const navigate=(m,sec)=>{ if(sec) setSection(sec); setMode(m); setTab("today"); };
+
+  const handleTabChange = (tabId) => {
+    setTab(tabId);
+    if (tabId !== "home") {
+      // Track feature usage (map tab IDs to feature names)
+      const featureMap = {
+        throne: "throne",
+        jarvis: "jarvis",
+        context: "vault",
+        games: "games",
+        settings: "settings"
+      };
+      if (featureMap[tabId]) {
+        trackEvent("feature_use", featureMap[tabId]).catch(()=>{});
+      }
+    }
+    if (tabId === "home") setHistoryOpen(false);
+  };
+
+  const handleOpenGuide = () => {
+    setGuideOpen(true);
+    trackEvent("feature_use", "guide").catch(()=>{});
+  };
 
   // PIN SETUP — if PIN not set yet, show setup flow and block everything else
   if (!pinSetupComplete) {
@@ -2641,7 +2702,8 @@ export default function App() {
         {tab==="settings"&&<SettingsScreen apiKey={apiKey} setApiKey={setApiKey} goal={goal} setGoal={setGoal}
           entries={entries} onExport={handleExport} accessToken={accessToken} setAccessToken={setAccessToken}
           pinSetupComplete={pinSetupComplete} onDisablePin={handleDisablePin}
-          onOpenGuide={()=>setGuideOpen(true)} onResetOnboarding={handleResetOnboarding}/>}
+          onOpenGuide={handleOpenGuide} onResetOnboarding={handleResetOnboarding}
+          onOpenMetrics={()=>setMetricsOpen(true)}/>}
       </div>
 
       {backupReminder&&<BackupReminder entries={entries} onExport={handleExport} onDismiss={handleDismissReminder}/>}
@@ -2667,7 +2729,7 @@ export default function App() {
           {id:"settings",l:"MORE",icon:"☰"}].map((t)=>{
           const active=t.id===tab;
           return(
-            <button key={t.id} onClick={()=>{setTab(t.id);if(t.id==="home")setHistoryOpen(false);}}
+            <button key={t.id} onClick={()=>handleTabChange(t.id)}
               style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",
                 justifyContent:"center",gap:2,paddingBottom:8,paddingTop:8}}>
               <span style={{fontSize:20,lineHeight:1,opacity:active?1:.28,transition:"opacity .2s"}}>{t.icon}</span>
@@ -2680,6 +2742,9 @@ export default function App() {
 
       {/* Guide Modal Overlay */}
       {guideOpen&&<GuideModal onClose={()=>setGuideOpen(false)}/>}
+
+      {/* Metrics Dashboard */}
+      {metricsOpen&&<MetricsScreen onClose={()=>setMetricsOpen(false)}/>}
     </div>
   );
 }

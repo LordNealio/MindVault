@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { trackEvent } from "../../lib/metrics.js";
 
 // ── Design tokens ─────────────────────────────────────────
 const D = {
@@ -57,7 +58,23 @@ export function BoxBreathing({ onClose }) {
     setRounds(Math.floor(elapsed / cycleLen));
   }, [elapsed, cycleLen]);
 
-  const reset = () => { setRunning(false); setElapsed(0); setRounds(0); };
+  // Track meditation start/end
+  useEffect(() => {
+    if (running && elapsed === 0) {
+      // Just started meditation
+      trackEvent("meditation_start", "meditation", { type: "box_breathing", duration: secsPer }).catch(() => {});
+    }
+  }, [running, elapsed, secsPer]);
+
+  const reset = () => {
+    // Track meditation end if it was started
+    if (elapsed > 0) {
+      trackEvent("meditation_end", "meditation", { type: "box_breathing", duration: Math.round(elapsed * 1000) }).catch(() => {});
+    }
+    setRunning(false);
+    setElapsed(0);
+    setRounds(0);
+  };
 
   return (
     <div style={{

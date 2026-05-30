@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { OnboardingCard, OnboardingButton } from "./OnboardingCard.jsx";
+import { trackEvent } from "../../lib/metrics.js";
 
 const D = {
   bg:"#F0EDE5", white:"#FAFAF7", bk:"#0A0A0A",
@@ -8,6 +9,11 @@ const D = {
 
 export function OnboardingFlow({ onComplete, onOpenMeditation }) {
   const [screen, setScreen] = useState(0);
+
+  // Track onboarding screen views
+  useEffect(() => {
+    trackEvent("onboarding_screen_view", "onboarding", { screenIndex: screen }).catch(() => {});
+  }, [screen]);
 
   const handleComplete = () => {
     localStorage.setItem("mindwrite_onboarding_complete", "true");
@@ -99,7 +105,8 @@ export function OnboardingFlow({ onComplete, onOpenMeditation }) {
             <strong>Use headphones if possible.<br />Sit or lie comfortably.<br />Don't force results.<br />Let the guidance carry you.</strong>
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <OnboardingButton onClick={() => { onOpenMeditation(); }} variant="primary">Begin Meditation</OnboardingButton>
+            <OnboardingButton onClick={() => { onOpenMeditation(); }} variant="primary">Jose Silva YouTube →</OnboardingButton>
+            <OnboardingButton onClick={() => { window.open("https://silvamethod.com/research/", "_blank"); }} variant="primary">Scientific Research →</OnboardingButton>
             <OnboardingButton onClick={nextScreen} variant="secondary">Continue</OnboardingButton>
           </div>
         </OnboardingCard>
