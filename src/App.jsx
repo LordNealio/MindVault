@@ -2875,6 +2875,8 @@ export default function App() {
         <MorningGateModal
           mode={mode}
           onModeChange={(newMode)=>{
+            setTab("today");
+            setSection("morning");
             setMode(newMode);
             setMorningGateActive(false);
           }}
