@@ -2062,10 +2062,11 @@ function ApiKeyCard({ dKey, setDKey }) {
 }
 
 // ── SETTINGS ──────────────────────────────────────────────
-function SettingsScreen({apiKey,setApiKey,goal,setGoal,entries,onExport,accessToken,setAccessToken,pinSetupComplete,onDisablePin,onOpenGuide,onResetOnboarding,onOpenMetrics}) {
+function SettingsScreen({apiKey,setApiKey,goal,setGoal,entries,onExport,accessToken,setAccessToken,pinSetupComplete,onDisablePin,onOpenGuide,onResetOnboarding,onOpenMetrics,morningGateMode,setMorningGateMode}) {
   const [dKey,setDKey]=useState(apiKey);
   const [dGoal,setDGoal]=useState(String(goal));
   const [dToken,setDToken]=useState(accessToken);
+  const [dGateMode,setDGateMode]=useState(morningGateMode||"once-per-day");
   const [saved,setSaved]=useState(false);
   const [importing,setImporting]=useState(false);
   const [showQManager,setShowQManager]=useState(false);
@@ -2078,9 +2079,10 @@ function SettingsScreen({apiKey,setApiKey,goal,setGoal,entries,onExport,accessTo
   const save=()=>{
     setApiKey(dKey);
     setAccessToken(dToken);
+    setMorningGateMode(dGateMode);
     const g=parseInt(dGoal)||90;
     setGoal(g);
-    LS.set("mv3_settings",{apiKey:dKey,goal:g,accessToken:dToken});
+    LS.set("mv3_settings",{apiKey:dKey,goal:g,accessToken:dToken,morningGateMode:dGateMode});
     setSaved(true); setTimeout(()=>setSaved(false),2000);
   };
 
@@ -2277,6 +2279,34 @@ function SettingsScreen({apiKey,setApiKey,goal,setGoal,entries,onExport,accessTo
 
         <Card>
           <div style={{padding:"14px"}}>
+            <SLabel style={{marginBottom:4}}>Morning Gate</SLabel>
+            <p style={{fontSize:11,color:D.muted,marginBottom:12,lineHeight:1.65}}>Encourage daily reflection on startup.</p>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[
+                {id:"off",l:"Off",sub:"No morning gate"},
+                {id:"once-per-day",l:"Once Per Day",sub:"Show on first login, can skip"},
+                {id:"until-completed",l:"Until Completed",sub:"Block other features until morning is done"}
+              ].map(o=>(
+                <button key={o.id} onClick={()=>setDGateMode(o.id)}
+                  style={{padding:"10px 12px",borderRadius:8,fontFamily:"'Unbounded',monospace",fontSize:9,
+                    fontWeight:dGateMode===o.id?700:600,letterSpacing:".06em",
+                    border:`1.5px solid ${dGateMode===o.id?D.bk:D.border}`,
+                    background:dGateMode===o.id?D.bk:"transparent",
+                    color:dGateMode===o.id?D.yl:D.muted,cursor:"pointer",transition:"all .15s"}}>
+                  {dGateMode===o.id?"✓ ":""}{o.l}
+                </button>
+              ))}
+              <div style={{fontSize:10,color:D.muted,marginTop:4,fontStyle:"italic"}}>
+                {dGateMode==="off"&&"Morning reflection is optional."}
+                {dGateMode==="once-per-day"&&"Gentle nudge to start your day with intention."}
+                {dGateMode==="until-completed"&&"Commitment mode: complete morning before accessing the app."}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div style={{padding:"14px"}}>
             <SLabel style={{marginBottom:4}}>Journey Goal</SLabel>
             <p style={{fontSize:11,color:D.muted,marginBottom:12,lineHeight:1.65}}>The MindWrite book is 90 days — but any goal works.</p>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -2378,6 +2408,59 @@ function SettingsScreen({apiKey,setApiKey,goal,setGoal,entries,onExport,accessTo
   );
 }
 
+// ── MORNING GATE MODAL ─────────────────────────────────────
+function MorningGateModal({mode,onModeChange,onSkip,gateMode}) {
+  const isUntilCompleted = gateMode==="until-completed";
+
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:2000,
+      background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",
+      justifyContent:"center",padding:20}}>
+      <div style={{background:D.white,borderRadius:20,padding:32,maxWidth:360,width:"100%",
+        boxShadow:"0 20px 60px rgba(0,0,0,0.3)",textAlign:"center"}}>
+        <div style={{fontSize:48,marginBottom:16}}>🌅</div>
+        <div style={{fontFamily:"'Unbounded',monospace",fontSize:18,fontWeight:900,
+          color:D.bk,marginBottom:12,lineHeight:1.2}}>
+          Start Your Day
+        </div>
+        <p style={{fontSize:13,color:D.muted,lineHeight:1.65,marginBottom:24}}>
+          {isUntilCompleted
+            ?"Complete your morning reflection to unlock MindVault."
+            :"Begin with guided reflection, or continue on your own."}
+        </p>
+
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <button onClick={()=>onModeChange("guided")}
+            style={{width:"100%",background:D.yl,color:D.bk,borderRadius:12,
+              padding:"14px",fontFamily:"'Unbounded',monospace",fontSize:10,
+              fontWeight:900,letterSpacing:".08em",border:"none",cursor:"pointer",
+              transition:"all .2s"}}>
+            ✨ GUIDED REFLECTION
+          </button>
+
+          <button onClick={()=>onModeChange("template")}
+            style={{width:"100%",background:D.white,color:D.bk,borderRadius:12,
+              padding:"14px",fontFamily:"'Unbounded',monospace",fontSize:10,
+              fontWeight:700,letterSpacing:".08em",border:`1.5px solid ${D.border}`,
+              cursor:"pointer",transition:"all .2s"}}>
+            MANUAL MODE
+          </button>
+
+          {!isUntilCompleted&&(
+            <button onClick={onSkip}
+              style={{width:"100%",background:"transparent",color:D.muted,borderRadius:12,
+                padding:"12px",fontFamily:"'Unbounded',monospace",fontSize:9,
+                fontWeight:600,letterSpacing:".06em",border:"none",cursor:"pointer",
+                marginTop:4}}>
+              Skip for now →
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── JOURNAL ERROR BOUNDARY ────────────────────────────────
 class JournalErrorBoundary extends Component {
   constructor(props){super(props);this.state={hasError:false};}
@@ -2413,6 +2496,7 @@ export default function App() {
   const [apiKey,setApiKey]= useState(saved.apiKey||"");
   const [goal,  setGoal]  = useState(saved.goal||90);
   const [accessToken,setAccessToken] = useState(saved.accessToken||"");
+  const [morningGateMode,setMorningGateMode]=useState(saved.morningGateMode||"once-per-day");
   const [historyOpen,setHistoryOpen] = useState(false);
   const [entries,setEntries]=useState([]);
   const [section,setSection]=useState("morning");
@@ -2426,12 +2510,19 @@ export default function App() {
   const [onboardingComplete,setOnboardingComplete]=useState(()=>localStorage.getItem("mindwrite_onboarding_complete")==="true");
   const [guideOpen,setGuideOpen]=useState(false);
   const [metricsOpen,setMetricsOpen]=useState(false);
+  const [morningGateActive,setMorningGateActive]=useState(false);
+  const [morningGateDismissedToday,setMorningGateDismissedToday]=useState(false);
   const entryUpdateRef = useRef(null); // pending IDB save from updateEntry
 
   const date = toISO();
   const te   = entries.find(e=>e.date===date)||{date,morning:newMorning(),evening:newEvening()};
   const morning=te.morning||newMorning();
   const evening=te.evening||newEvening();
+
+  // Check if morning section is complete
+  const isMorningComplete = () => {
+    return morning && morning.identity && morning.thankfulFor && morning.journal && morning.loveAction;
+  };
 
   useEffect(()=>{
     (async()=>{
@@ -2446,6 +2537,23 @@ export default function App() {
       trackEvent("app_open", "app").catch(()=>{});
     })();
   },[]);
+
+  // Check morning gate after entries load
+  useEffect(()=>{
+    if (entries.length===0) return;
+    const gateMode = morningGateMode||"once-per-day";
+    if (gateMode!=="off") {
+      const lastGateDate = localStorage.getItem("mv_morning_gate_date");
+      const todayEntry = entries.find(e=>e.date===date);
+      const todayMorning = todayEntry?.morning;
+      const isMorningDone = todayMorning && todayMorning.identity && todayMorning.thankfulFor && todayMorning.journal && todayMorning.loveAction;
+
+      if (lastGateDate!==date || (gateMode==="until-completed" && !isMorningDone)) {
+        setMorningGateActive(true);
+        if (gateMode==="once-per-day") setMode("guided");
+      }
+    }
+  },[entries,date,morningGateMode]);
 
   // PIN lock initialization — check if PIN is set on app load
   useEffect(()=>{
@@ -2531,6 +2639,13 @@ export default function App() {
       setMode("template");
       // Track entry creation
       trackEvent("entry_created", "journal", { section: field }).catch(()=>{});
+
+      // Mark morning gate as completed if morning was saved
+      if (field==="morning") {
+        localStorage.setItem("mv_morning_gate_date", date);
+        setMorningGateActive(false);
+      }
+
       setTimeout(async()=>{
         const current=await idb.getAll(S.entries).catch(()=>[]);
         await updateManifest(current, false).catch(()=>{});
@@ -2587,6 +2702,14 @@ export default function App() {
   const handleOpenGuide = () => {
     setGuideOpen(true);
     trackEvent("feature_use", "guide").catch(()=>{});
+  };
+
+  const dismissMorningGate = () => {
+    if (morningGateMode==="once-per-day") {
+      localStorage.setItem("mv_morning_gate_date", date);
+      setMorningGateActive(false);
+      setMorningGateDismissedToday(true);
+    }
   };
 
   // PIN SETUP — if PIN not set yet, show setup flow and block everything else
@@ -2703,7 +2826,8 @@ export default function App() {
           entries={entries} onExport={handleExport} accessToken={accessToken} setAccessToken={setAccessToken}
           pinSetupComplete={pinSetupComplete} onDisablePin={handleDisablePin}
           onOpenGuide={handleOpenGuide} onResetOnboarding={handleResetOnboarding}
-          onOpenMetrics={()=>setMetricsOpen(true)}/>}
+          onOpenMetrics={()=>setMetricsOpen(true)}
+          morningGateMode={morningGateMode} setMorningGateMode={setMorningGateMode}/>}
       </div>
 
       {backupReminder&&<BackupReminder entries={entries} onExport={handleExport} onDismiss={handleDismissReminder}/>}
@@ -2745,6 +2869,19 @@ export default function App() {
 
       {/* Metrics Dashboard */}
       {metricsOpen&&<MetricsScreen onClose={()=>setMetricsOpen(false)}/>}
+
+      {/* Morning Gate Modal */}
+      {morningGateActive&&(
+        <MorningGateModal
+          mode={mode}
+          onModeChange={(newMode)=>{
+            setMode(newMode);
+            setMorningGateActive(false);
+          }}
+          onSkip={dismissMorningGate}
+          gateMode={morningGateMode}
+        />
+      )}
     </div>
   );
 }
