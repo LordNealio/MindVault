@@ -2062,11 +2062,13 @@ function ApiKeyCard({ dKey, setDKey }) {
 }
 
 // ── SETTINGS ──────────────────────────────────────────────
-function SettingsScreen({apiKey,setApiKey,goal,setGoal,entries,onExport,accessToken,setAccessToken,pinSetupComplete,onDisablePin,onOpenGuide,onResetOnboarding,onOpenMetrics,morningGateMode,setMorningGateMode}) {
+function SettingsScreen({apiKey,setApiKey,goal,setGoal,entries,onExport,accessToken,setAccessToken,pinSetupComplete,onDisablePin,onOpenGuide,onResetOnboarding,onOpenMetrics,morningGateMode,setMorningGateMode,eveningReminderEnabled,setEveningReminderEnabled,eveningReminderTime,setEveningReminderTime}) {
   const [dKey,setDKey]=useState(apiKey);
   const [dGoal,setDGoal]=useState(String(goal));
   const [dToken,setDToken]=useState(accessToken);
   const [dGateMode,setDGateMode]=useState(morningGateMode||"once-per-day");
+  const [dEveningReminder,setDEveningReminder]=useState(eveningReminderEnabled||false);
+  const [dEveningTime,setDEveningTime]=useState(eveningReminderTime||"18:00");
   const [saved,setSaved]=useState(false);
   const [importing,setImporting]=useState(false);
   const [showQManager,setShowQManager]=useState(false);
@@ -2080,9 +2082,11 @@ function SettingsScreen({apiKey,setApiKey,goal,setGoal,entries,onExport,accessTo
     setApiKey(dKey);
     setAccessToken(dToken);
     setMorningGateMode(dGateMode);
+    setEveningReminderEnabled(dEveningReminder);
+    setEveningReminderTime(dEveningTime);
     const g=parseInt(dGoal)||90;
     setGoal(g);
-    LS.set("mv3_settings",{apiKey:dKey,goal:g,accessToken:dToken,morningGateMode:dGateMode});
+    LS.set("mv3_settings",{apiKey:dKey,goal:g,accessToken:dToken,morningGateMode:dGateMode,eveningReminderEnabled:dEveningReminder,eveningReminderTime:dEveningTime});
     setSaved(true); setTimeout(()=>setSaved(false),2000);
   };
 
@@ -2307,6 +2311,33 @@ function SettingsScreen({apiKey,setApiKey,goal,setGoal,entries,onExport,accessTo
 
         <Card>
           <div style={{padding:"14px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+              <div>
+                <SLabel style={{marginBottom:2}}>Evening Reminder</SLabel>
+                <p style={{fontSize:11,color:D.muted,marginTop:2}}>Gentle nudge to complete your reflection.</p>
+              </div>
+              <button onClick={()=>setDEveningReminder(!dEveningReminder)}
+                style={{width:48,height:28,borderRadius:14,border:"none",
+                  background:dEveningReminder?D.yl:"#ddd",position:"relative",cursor:"pointer",
+                  flexShrink:0,transition:"background 0.2s"}}>
+                <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",
+                  position:"absolute",top:4,left:dEveningReminder?24:4,
+                  transition:"left 0.2s",boxShadow:"0 1px 4px rgba(0,0,0,0.3)"}}/>
+              </button>
+            </div>
+            {dEveningReminder&&(
+              <div>
+                <SLabel style={{marginBottom:4,display:"block"}}>Remind me at</SLabel>
+                <input type="time" value={dEveningTime} onChange={e=>setDEveningTime(e.target.value)}
+                  style={{background:D.bg,borderRadius:10,padding:"10px 12px",fontSize:14,
+                    border:`1.5px solid ${D.border}`,width:"100%",fontFamily:"'Unbounded',monospace"}}/>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <Card>
+          <div style={{padding:"14px"}}>
             <SLabel style={{marginBottom:4}}>Journey Goal</SLabel>
             <p style={{fontSize:11,color:D.muted,marginBottom:12,lineHeight:1.65}}>The MindWrite book is 90 days — but any goal works.</p>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -2408,6 +2439,43 @@ function SettingsScreen({apiKey,setApiKey,goal,setGoal,entries,onExport,accessTo
   );
 }
 
+// ── EVENING REMINDER BANNER ───────────────────────────────
+function EveningReminderBanner({onDismiss,onNavigate}) {
+  return(
+    <div style={{position:"fixed",top:0,left:0,right:0,zIndex:1500,
+      background:`linear-gradient(135deg,${D.bl} 0%,#2a4a6f 100%)`,
+      borderBottom:`2px solid ${D.yl}`,padding:"14px 16px",maxWidth:480,
+      margin:"0 auto",width:"100%",boxShadow:"0 4px 12px rgba(0,0,0,0.15)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"space-between"}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:12,fontWeight:700,color:D.yl,marginBottom:3,
+            fontFamily:"'Unbounded',monospace",letterSpacing:".05em"}}>
+            Evening Reflection
+          </div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.8)",lineHeight:1.4}}>
+            Take a moment to reflect on your day.
+          </div>
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          <button onClick={()=>{onNavigate();onDismiss();}}
+            style={{background:D.yl,color:D.bk,border:"none",borderRadius:8,
+              padding:"8px 12px",fontSize:10,fontWeight:700,cursor:"pointer",
+              fontFamily:"'Unbounded',monospace",letterSpacing:".05em",
+              transition:"all .2s"}}>
+            FILL IT IN
+          </button>
+          <button onClick={onDismiss}
+            style={{background:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.7)",
+              border:"none",borderRadius:8,padding:"8px 10px",fontSize:10,
+              cursor:"pointer",transition:"all .2s"}}>
+            ×
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── MORNING GATE MODAL ─────────────────────────────────────
 function MorningGateModal({mode,onModeChange,onSkip,gateMode}) {
   const isUntilCompleted = gateMode==="until-completed";
@@ -2497,6 +2565,8 @@ export default function App() {
   const [goal,  setGoal]  = useState(saved.goal||90);
   const [accessToken,setAccessToken] = useState(saved.accessToken||"");
   const [morningGateMode,setMorningGateMode]=useState(saved.morningGateMode||"once-per-day");
+  const [eveningReminderEnabled,setEveningReminderEnabled]=useState(saved.eveningReminderEnabled||false);
+  const [eveningReminderTime,setEveningReminderTime]=useState(saved.eveningReminderTime||"18:00");
   const [historyOpen,setHistoryOpen] = useState(false);
   const [entries,setEntries]=useState([]);
   const [section,setSection]=useState("morning");
@@ -2512,6 +2582,8 @@ export default function App() {
   const [metricsOpen,setMetricsOpen]=useState(false);
   const [morningGateActive,setMorningGateActive]=useState(false);
   const [morningGateDismissedToday,setMorningGateDismissedToday]=useState(false);
+  const [showEveningReminder,setShowEveningReminder]=useState(false);
+  const [reminderDismissedToday,setReminderDismissedToday]=useState(false);
   const entryUpdateRef = useRef(null); // pending IDB save from updateEntry
 
   const date = toISO();
@@ -2554,6 +2626,28 @@ export default function App() {
       }
     }
   },[entries,date,morningGateMode]);
+
+  // Check evening reminder
+  useEffect(()=>{
+    if (!eveningReminderEnabled || entries.length===0 || reminderDismissedToday) return;
+
+    const [hours, mins] = eveningReminderTime.split(":").map(Number);
+    const reminderDate = new Date();
+    reminderDate.setHours(hours, mins, 0, 0);
+
+    const now = new Date();
+    const todayEntry = entries.find(e=>e.date===date);
+    const eveningDone = todayEntry?.evening &&
+      (todayEntry.evening.feel1 || todayEntry.evening.feel2 || todayEntry.evening.learned || todayEntry.evening.memory);
+
+    // Show reminder if: past reminder time AND evening not done AND not yet dismissed today
+    if (now >= reminderDate && !eveningDone) {
+      const lastReminderDate = localStorage.getItem("mv_evening_reminder_date");
+      if (lastReminderDate !== date) {
+        setShowEveningReminder(true);
+      }
+    }
+  },[eveningReminderEnabled,eveningReminderTime,entries,date,reminderDismissedToday]);
 
   // PIN lock initialization — check if PIN is set on app load
   useEffect(()=>{
@@ -2712,6 +2806,12 @@ export default function App() {
     }
   };
 
+  const dismissEveningReminder = () => {
+    localStorage.setItem("mv_evening_reminder_date", date);
+    setShowEveningReminder(false);
+    setReminderDismissedToday(true);
+  };
+
   // PIN SETUP — if PIN not set yet, show setup flow and block everything else
   if (!pinSetupComplete) {
     return <PinSetup onComplete={()=>{ setPinSetupComplete(true); setPinUnlocked(true); }} />;
@@ -2763,7 +2863,14 @@ export default function App() {
 
   return(
     <div style={{background:D.bg,minHeight:"100vh",maxWidth:480,margin:"0 auto"}}>
-      <div style={{paddingBottom:80}}>
+      {/* Evening Reminder Banner */}
+      {showEveningReminder&&(
+        <EveningReminderBanner
+          onDismiss={dismissEveningReminder}
+          onNavigate={()=>{setTab("today");setSection("evening");}}
+        />
+      )}
+      <div style={{paddingBottom:80,paddingTop:showEveningReminder?70:0}}>
         {tab==="home"&&!historyOpen&&<HomeScreen entries={entries} goal={goal} onNavigate={navigate} onOpenHistory={()=>setHistoryOpen(true)} onUpdateEntry={updateEntry} apiKey={apiKey} onOpenGuide={()=>setGuideOpen(true)}/>}
         {tab==="home"&&historyOpen&&<JournalHistoryScreen entries={entries} onBack={()=>setHistoryOpen(false)}/>}
 
@@ -2827,7 +2934,9 @@ export default function App() {
           pinSetupComplete={pinSetupComplete} onDisablePin={handleDisablePin}
           onOpenGuide={handleOpenGuide} onResetOnboarding={handleResetOnboarding}
           onOpenMetrics={()=>setMetricsOpen(true)}
-          morningGateMode={morningGateMode} setMorningGateMode={setMorningGateMode}/>}
+          morningGateMode={morningGateMode} setMorningGateMode={setMorningGateMode}
+          eveningReminderEnabled={eveningReminderEnabled} setEveningReminderEnabled={setEveningReminderEnabled}
+          eveningReminderTime={eveningReminderTime} setEveningReminderTime={setEveningReminderTime}/>}
       </div>
 
       {backupReminder&&<BackupReminder entries={entries} onExport={handleExport} onDismiss={handleDismissReminder}/>}
