@@ -46,7 +46,14 @@
       "Bash(mkdir -p \"C:/Users/nealj/OneDrive/Desktop/k-source-vault/app/login\" \"C:/Users/nealj/OneDrive/Desktop/k-source-vault/app/signup\" \"C:/Users/nealj/OneDrive/Desktop/k-source-vault/app/factory/dashboard\" \"C:/Users/nealj/OneDrive/Desktop/k-source-vault/components\" && echo \"done\")",
       "Bash(mkdir \"C:\\\\Users\\\\nealj\\\\OneDrive\\\\Desktop\\\\MindWrite\\\\workwrite-app\")",
       "Bash(npx vite *)",
-      "Bash(vercel --prod)"
+      "Bash(vercel --prod)",
+      "Bash(ls -la \"/c/Users/nealj/OneDrive/Desktop/LegacyBridge/src/components\" 2>/dev/null | head -30)",
+      "Read(//c/Users/nealj/OneDrive/Desktop/LegacyBridge/**)",
+      "Bash(npx next *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

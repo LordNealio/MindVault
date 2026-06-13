@@ -33,6 +33,13 @@
       "runtimeArgs": ["run", "dev", "--", "--port", "3002"],
       "port": 3002,
       "cwd": "../../../../creation-os"
+    },
+    {
+      "name": "legacybridge",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "3003"],
+      "port": 3003,
+      "cwd": "legacybridge"
     }
   ]
 }

@@ -15,6 +15,7 @@ import { CustomQuestionsManager, CustomQuestionsSection } from "./features/quest
 import { isSectionVisible } from "./features/questions/customQuestions.js";
 import { trackEvent } from "./lib/metrics.js";
 import { MetricsScreen } from "./features/MetricsScreen.jsx";
+import { TodayHabitsScreen } from "./features/habits/TodayHabitsScreen.jsx";
 
 // ── FONTS ─────────────────────────────────────────────────
 (() => {
@@ -2927,6 +2928,7 @@ export default function App() {
         {tab==="throne"&&<ThroneTalk/>}
         {tab==="jarvis"&&<Jarvis token={accessToken}/>}
         {tab==="context"&&<JarvisVault/>}
+        {tab==="habits"&&<TodayHabitsScreen/>}
         {tab==="games"&&<MindGamesWorkspace/>}
 
         {tab==="settings"&&<SettingsScreen apiKey={apiKey} setApiKey={setApiKey} goal={goal} setGoal={setGoal}
@@ -2958,7 +2960,7 @@ export default function App() {
         paddingBottom:"env(safe-area-inset-bottom)",zIndex:200}}>
         {[{id:"home",l:"HOME",icon:"⌂"},{id:"throne",l:"THRONE",icon:"🚽"},
           {id:"jarvis",l:"ORPHEUS",icon:"⚡"},{id:"context",l:"VAULT",icon:"◧"},
-          {id:"games",l:"GAMES",icon:"🧠"},
+          {id:"habits",l:"HABITS",icon:"✓"},{id:"games",l:"GAMES",icon:"🧠"},
           {id:"settings",l:"MORE",icon:"☰"}].map((t)=>{
           const active=t.id===tab;
           return(

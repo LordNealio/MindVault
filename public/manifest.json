@@ -1,7 +1,7 @@
 {
-  "name": "WorkWrite",
-  "short_name": "WorkWrite",
-  "description": "Cognitive offloading and feedback loop system for professional work execution.",
+  "name": "MindVault",
+  "short_name": "MindVault",
+  "description": "A 90-day guided journal for breathwork, forgiveness, self-awareness, and conscious living.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -13,5 +13,5 @@
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
     { "src": "/icons/icon-180.png", "sizes": "180x180", "type": "image/png" }
   ],
-  "categories": ["productivity", "business"]
+  "categories": ["lifestyle", "health-fitness", "education"]
 }
