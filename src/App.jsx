@@ -15,7 +15,7 @@ import { CustomQuestionsManager, CustomQuestionsSection } from "./features/quest
 import { isSectionVisible } from "./features/questions/customQuestions.js";
 import { trackEvent } from "./lib/metrics.js";
 import { MetricsScreen } from "./features/MetricsScreen.jsx";
-import { TodayHabitsScreen } from "./features/habits/TodayHabitsScreen.jsx";
+import { HabitsListScreen } from "./features/habits/HabitsListScreen.jsx";
 
 // ── FONTS ─────────────────────────────────────────────────
 (() => {
@@ -2928,7 +2928,7 @@ export default function App() {
         {tab==="throne"&&<ThroneTalk/>}
         {tab==="jarvis"&&<Jarvis token={accessToken}/>}
         {tab==="context"&&<JarvisVault/>}
-        {tab==="habits"&&<TodayHabitsScreen/>}
+        {tab==="habits"&&<HabitsListScreen/>}
         {tab==="games"&&<MindGamesWorkspace/>}
 
         {tab==="settings"&&<SettingsScreen apiKey={apiKey} setApiKey={setApiKey} goal={goal} setGoal={setGoal}
