@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { listHabits, getLatestVersion } from "../../lib/habitService.js";
 import { HabitFormScreen } from "./HabitFormScreen.jsx";
+import { HabitDetailScreen } from "./HabitDetailScreen.jsx";
 import { TodayHabitsScreen } from "./TodayHabitsScreen.jsx";
 
 const D = {
@@ -9,11 +10,12 @@ const D = {
 };
 
 export function HabitsListScreen() {
-  const [view, setView] = useState("today"); // "today", "list", "create", "edit"
+  const [view, setView] = useState("today"); // "today", "list", "create", "edit", "detail"
   const [habits, setHabits] = useState([]);
   const [versionMap, setVersionMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [editingHabitId, setEditingHabitId] = useState(null);
+  const [selectedHabitId, setSelectedHabitId] = useState(null);
 
   useEffect(() => {
     if (view === "list" || view === "edit") {
@@ -58,6 +60,20 @@ export function HabitsListScreen() {
   const handleSaveHabit = async () => {
     await loadHabits();
     setView("list");
+  };
+
+  const handleViewDetail = (habitId) => {
+    setSelectedHabitId(habitId);
+    setView("detail");
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedHabitId(null);
+    setView("list");
+  };
+
+  const handleDetailUpdate = () => {
+    loadHabits();
   };
 
   // ────────────────────────────────────────────────────────────
@@ -150,7 +166,7 @@ export function HabitsListScreen() {
               return (
                 <div
                   key={habit.id}
-                  onClick={() => handleEditHabit(habit.id)}
+                  onClick={() => handleViewDetail(habit.id)}
                   style={{
                     border: `1px solid ${D.border}`, borderRadius: 12,
                     padding: 16, background: D.surf, cursor: "pointer",
@@ -204,6 +220,18 @@ export function HabitsListScreen() {
         habitId={view === "edit" ? editingHabitId : null}
         onSave={handleSaveHabit}
         onCancel={() => setView("list")}
+      />
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // DETAIL VIEW - show habit details
+  if (view === "detail" && selectedHabitId) {
+    return (
+      <HabitDetailScreen
+        habitId={selectedHabitId}
+        onClose={handleCloseDetail}
+        onUpdate={handleDetailUpdate}
       />
     );
   }
