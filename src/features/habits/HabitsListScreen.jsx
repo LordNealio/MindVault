@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { listHabits, getLatestVersion } from "../../lib/habitService.js";
 import { HabitFormScreen } from "./HabitFormScreen.jsx";
 import { HabitDetailScreen } from "./HabitDetailScreen.jsx";
+import { AtomizerFlow } from "./AtomizerFlow.jsx";
 import { TodayHabitsScreen } from "./TodayHabitsScreen.jsx";
 
 const D = {
@@ -10,7 +11,7 @@ const D = {
 };
 
 export function HabitsListScreen() {
-  const [view, setView] = useState("today"); // "today", "list", "create", "edit", "detail"
+  const [view, setView] = useState("today"); // "today", "list", "create", "edit", "detail", "atomizer"
   const [habits, setHabits] = useState([]);
   const [versionMap, setVersionMap] = useState({});
   const [loading, setLoading] = useState(true);
@@ -76,6 +77,11 @@ export function HabitsListScreen() {
     loadHabits();
   };
 
+  const handleAtomizerComplete = async () => {
+    await loadHabits();
+    setView("list");
+  };
+
   // ────────────────────────────────────────────────────────────
   // TODAY VIEW - shows pending habits
   if (view === "today") {
@@ -85,12 +91,12 @@ export function HabitsListScreen() {
         <div style={{
           position: "fixed", bottom: 80, right: 20, left: 20,
           display: "flex", gap: 8, maxWidth: "calc(480px - 40px)",
-          margin: "0 auto",
+          margin: "0 auto", flexWrap: "wrap",
         }}>
           <button
             onClick={() => setView("list")}
             style={{
-              flex: 1, padding: "12px", borderRadius: 8,
+              flex: "1 1 48%", padding: "12px", borderRadius: 8,
               background: D.surf, border: `1px solid ${D.border}`,
               cursor: "pointer", fontSize: 11, fontWeight: 700,
               color: D.bk,
@@ -99,9 +105,20 @@ export function HabitsListScreen() {
             VIEW ALL
           </button>
           <button
+            onClick={() => setView("atomizer")}
+            style={{
+              flex: "1 1 48%", padding: "12px", borderRadius: 8,
+              background: D.surf, border: `1px solid ${D.border}`,
+              cursor: "pointer", fontSize: 11, fontWeight: 700,
+              color: D.bk,
+            }}
+          >
+            💡 USE ATOMIZER
+          </button>
+          <button
             onClick={handleCreateNew}
             style={{
-              flex: 1, padding: "12px", borderRadius: 8,
+              flex: "1 1 100%", padding: "12px", borderRadius: 8,
               background: D.yl, border: "none",
               cursor: "pointer", fontSize: 11, fontWeight: 700,
               color: D.bk,
@@ -232,6 +249,17 @@ export function HabitsListScreen() {
         habitId={selectedHabitId}
         onClose={handleCloseDetail}
         onUpdate={handleDetailUpdate}
+      />
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // ATOMIZER VIEW - AI habit discovery
+  if (view === "atomizer") {
+    return (
+      <AtomizerFlow
+        onHabitCreated={handleAtomizerComplete}
+        onCancel={() => setView("today")}
       />
     );
   }
