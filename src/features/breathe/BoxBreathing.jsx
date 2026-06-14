@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { trackEvent } from "../../lib/metrics.js";
+import { createHabit } from "../../lib/habitService.js";
 
 // ── Design tokens ─────────────────────────────────────────
 const D = {
@@ -32,6 +33,8 @@ export function BoxBreathing({ onClose }) {
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);    // decimal seconds, 1dp
   const [rounds,  setRounds]  = useState(0);
+  const [showSaveHabitModal, setShowSaveHabitModal] = useState(false);
+  const [savingHabit, setSavingHabit] = useState(false);
 
   const cycleLen    = secsPer * 4;
   const cyc         = elapsed % cycleLen;
@@ -74,6 +77,31 @@ export function BoxBreathing({ onClose }) {
     setRunning(false);
     setElapsed(0);
     setRounds(0);
+  };
+
+  const handleSaveAsHabit = async () => {
+    try {
+      setSavingHabit(true);
+      const durationMinutes = Math.round(elapsed / 60);
+      const habitData = {
+        title: `${secsPer}-${secsPer}-${secsPer}-${secsPer} Box Breathing`,
+        category: "wellness",
+        description: `Box breathing meditation with ${secsPer}-second counts. Completed ${rounds} rounds totaling ${durationMinutes} minutes.`,
+        measurementType: "boolean",
+        cue: { time: null, location: "", context: "Anytime" },
+        durations: { full: durationMinutes, reduced: Math.ceil(durationMinutes * 0.5), minimum: Math.ceil(durationMinutes * 0.25) },
+        ratings: { difficulty: 3, timeRequired: 5, enjoyment: 8, impact: 7, alignment: 8 },
+      };
+
+      await createHabit(habitData, "FREQ=DAILY");
+      setShowSaveHabitModal(false);
+      onClose();
+    } catch (err) {
+      console.error("Failed to save as habit:", err);
+      alert("Failed to save habit. Please try again.");
+    } finally {
+      setSavingHabit(false);
+    }
   };
 
   return (
@@ -180,26 +208,77 @@ export function BoxBreathing({ onClose }) {
       </div>
 
       {/* ── Controls ────────────────────────────────────── */}
-      <div style={{padding:"0 20px 44px",display:"flex",gap:10}}>
-        <button onClick={() => setRunning(r => !r)} style={{
-          flex:1,padding:"16px",borderRadius:14,border:"none",
-          background:D.bk,color:"#fff",cursor:"pointer",
-          fontFamily:"'Unbounded',monospace",fontSize:10,
-          fontWeight:700,letterSpacing:".08em",
-          transition:"opacity .15s",
-        }}>
-          {running ? "⏸ PAUSE" : started ? "▶ RESUME" : "▶ START"}
-        </button>
-        {started && (
-          <button onClick={reset} style={{
-            padding:"16px 20px",borderRadius:14,
-            border:`1.5px solid ${D.border}`,background:"transparent",
-            fontSize:11,color:D.muted,cursor:"pointer",
+      <div style={{padding:"0 20px 44px",display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={() => setRunning(r => !r)} style={{
+            flex:1,padding:"16px",borderRadius:14,border:"none",
+            background:D.bk,color:"#fff",cursor:"pointer",
+            fontFamily:"'Unbounded',monospace",fontSize:10,
+            fontWeight:700,letterSpacing:".08em",
+            transition:"opacity .15s",
           }}>
-            Reset
+            {running ? "⏸ PAUSE" : started ? "▶ RESUME" : "▶ START"}
+          </button>
+          {started && (
+            <button onClick={reset} style={{
+              padding:"16px 20px",borderRadius:14,
+              border:`1.5px solid ${D.border}`,background:"transparent",
+              fontSize:11,color:D.muted,cursor:"pointer",
+            }}>
+              Reset
+            </button>
+          )}
+        </div>
+        {started && !running && (
+          <button onClick={() => setShowSaveHabitModal(true)} style={{
+            padding:"12px 16px",borderRadius:14,border:`1.5px solid ${D.border}`,
+            background:"transparent",fontSize:11,color:"#E8B84B",fontWeight:700,
+            cursor:"pointer",
+          }}>
+            💾 SAVE AS DAILY HABIT
           </button>
         )}
       </div>
+
+      {/* Save as Habit Modal */}
+      {showSaveHabitModal && (
+        <div style={{
+          position:"fixed",inset:0,zIndex:651,
+          background:"rgba(0,0,0,0.5)",display:"flex",
+          alignItems:"center",justifyContent:"center",padding:16,
+        }}>
+          <div style={{
+            background:D.surf,borderRadius:16,padding:24,maxWidth:400,width:"100%",
+          }}>
+            <h2 style={{fontSize:16,fontWeight:700,marginBottom:12,color:D.bk}}>
+              Save as Daily Habit?
+            </h2>
+            <p style={{fontSize:13,color:D.muted,marginBottom:20,lineHeight:1.6}}>
+              This will create a daily habit reminder for {secsPer}-{secsPer}-{secsPer}-{secsPer} box breathing.
+              <br/><br/>
+              Duration: {Math.round(elapsed/60)} minutes
+              <br/>
+              Rounds: {rounds}
+            </p>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={handleSaveAsHabit} disabled={savingHabit} style={{
+                flex:1,padding:"12px",borderRadius:8,background:"#E8B84B",
+                border:"none",cursor:savingHabit?"not-allowed":"pointer",
+                fontSize:12,fontWeight:700,color:D.bk,
+              }}>
+                {savingHabit ? "SAVING..." : "YES, SAVE"}
+              </button>
+              <button onClick={() => setShowSaveHabitModal(false)} style={{
+                flex:1,padding:"12px",borderRadius:8,
+                border:`1px solid ${D.border}`,background:"transparent",
+                cursor:"pointer",fontSize:12,color:D.muted,
+              }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
