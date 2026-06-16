@@ -9,14 +9,47 @@ const D = {
   gr: "#3DD68C",
 };
 
+const QUALIFICATIONS = {
+  fitness: [
+    { q: "Current fitness level?", opts: ["Beginner", "Intermediate", "Advanced"] },
+    { q: "Any injuries or conditions?", opts: ["None", "Minor", "Need doctor clearance"] },
+  ],
+  learning: [
+    { q: "Experience with this topic?", opts: ["Complete beginner", "Some experience", "Advanced"] },
+    { q: "Time available per week?", opts: ["<2 hrs", "2-5 hrs", "5+ hrs"] },
+  ],
+  wellness: [
+    { q: "Current stress level?", opts: ["Low", "Moderate", "High"] },
+    { q: "Sleep quality?", opts: ["Good", "Fair", "Poor"] },
+  ],
+  default: [
+    { q: "How motivated are you?", opts: ["Just exploring", "Somewhat committed", "Very committed"] },
+  ],
+};
+
 export function AtomizerFlow({ onHabitCreated, onCancel }) {
-  const [step, setStep] = useState("input"); // input | candidates | editing
+  const [step, setStep] = useState("input"); // input | qualify | candidates | editing
   const [goalText, setGoalText] = useState("");
+  const [category, setCategory] = useState(null);
+  const [qualifications, setQualifications] = useState({});
   const [candidates, setCandidates] = useState([]);
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [expandedCard, setExpandedCard] = useState(null);
 
   const handleSearchGoals = () => {
+    const results = searchGoals(goalText);
+    if (results.length === 0) {
+      alert("No matching templates found. Try different keywords or create a custom habit.");
+      return;
+    }
+
+    // Detect category from results
+    const detectedCategory = results[0]?.goalTitle?.toLowerCase().split(" ")[0] || "default";
+    setCategory(detectedCategory);
+    setStep("qualify");
+  };
+
+  const handleQualifyAndSearch = () => {
     const results = searchGoals(goalText);
     if (results.length === 0) {
       alert("No matching templates found. Try different keywords or create a custom habit.");
@@ -59,12 +92,13 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
           What habit do you want to build?
         </h2>
         <p style={{ fontSize: 13, color: D.muted, marginBottom: 16, lineHeight: 1.6 }}>
-          Enter a goal and we'll suggest habit templates tailored to your needs.
+          Describe your goal and we'll find personalized templates. (Takes ~30 seconds)
         </p>
         <textarea
           value={goalText}
           onChange={(e) => setGoalText(e.target.value)}
-          placeholder="e.g. Get stronger, Read more, Exercise daily, Learn to code..."
+          placeholder="e.g. Get stronger, Read more, Learn to code, Reduce stress..."
+          autoFocus
           style={{
             width: "100%", padding: "12px", borderRadius: 8,
             border: `1px solid ${D.border}`, minHeight: 100,
@@ -83,7 +117,7 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
               fontSize: 12, fontWeight: 700, color: D.bk,
             }}
           >
-            SEARCH TEMPLATES
+            NEXT →
           </button>
           <button
             onClick={onCancel}
@@ -101,27 +135,114 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
   }
 
   // ────────────────────────────────────────────────────────────
-  // STEP 2: CANDIDATES
-  if (step === "candidates") {
+  // STEP 2: QUALIFY
+  if (step === "qualify") {
+    const qs = QUALIFICATIONS[category] || QUALIFICATIONS.default;
+    const allAnswered = Object.keys(qualifications).length === qs.length;
+
     return (
       <div style={{ padding: 20, maxWidth: 600, margin: "0 auto", paddingBottom: 40 }}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 20 }}>
+        <button
+          onClick={() => {
+            setStep("input");
+            setQualifications({});
+            setCategory(null);
+          }}
+          style={{
+            background: "transparent", border: "none",
+            cursor: "pointer", fontSize: 12, color: D.muted,
+            fontWeight: 700, marginBottom: 20,
+          }}
+        >
+          ← BACK
+        </button>
+
+        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: D.bk }}>
+          Tell us a bit more
+        </h2>
+        <p style={{ fontSize: 12, color: D.muted, marginBottom: 20 }}>
+          Your answers help us recommend safer, more personalized habits
+        </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 20 }}>
+          {qs.map((q, idx) => (
+            <div key={idx}>
+              <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: D.bk }}>
+                {q.q}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {q.opts.map(opt => (
+                  <button
+                    key={opt}
+                    onClick={() => setQualifications({ ...qualifications, [idx]: opt })}
+                    style={{
+                      padding: "10px", borderRadius: 8,
+                      background: qualifications[idx] === opt ? D.yl : D.surf,
+                      border: `1px solid ${qualifications[idx] === opt ? D.yl : D.border}`,
+                      cursor: "pointer", fontSize: 11, fontWeight: 600, color: D.bk,
+                    }}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={handleQualifyAndSearch}
+          disabled={!allAnswered}
+          style={{
+            width: "100%", padding: "12px", borderRadius: 8,
+            background: allAnswered ? D.yl : D.muted,
+            border: "none", cursor: allAnswered ? "pointer" : "not-allowed",
+            fontSize: 12, fontWeight: 700, color: D.bk,
+          }}
+        >
+          SEE RECOMMENDATIONS →
+        </button>
+      </div>
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // STEP 3: CANDIDATES
+  if (step === "candidates") {
+    const needsCaution = category === "fitness" || goalText.toLowerCase().includes("exercise");
+
+    return (
+      <div style={{ padding: 20, maxWidth: 600, margin: "0 auto", paddingBottom: 40 }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
           <button
-            onClick={() => setStep("input")}
+            onClick={() => {
+              setStep("qualify");
+              setQualifications({});
+            }}
             style={{
               background: "transparent", border: "none",
-              cursor: "pointer", fontSize: 14, color: D.muted,
+              cursor: "pointer", fontSize: 12, color: D.muted,
               fontWeight: 700,
             }}
           >
             ← BACK
           </button>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: D.bk, margin: "0 0 0 8px", flex: 1 }}>
-            Habit Templates
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: D.bk, margin: "0 0 0 8px", flex: 1 }}>
+            Recommendations
           </h2>
-          <span style={{ fontSize: 12, color: D.muted }}>
-            {candidates.length} found
-          </span>
+        </div>
+
+        {needsCaution && (
+          <div style={{
+            background: "#FFF3CD", border: "1px solid #FFE69C", borderRadius: 8,
+            padding: 12, marginBottom: 16, fontSize: 12, color: "#856404",
+          }}>
+            ⚠️ <strong>Important:</strong> Before starting any new exercise or fitness habit, consider consulting a healthcare provider, especially if you have any health concerns.
+          </div>
+        )}
+
+        <div style={{ fontSize: 12, color: D.muted, marginBottom: 16 }}>
+          {candidates.length} personalized templates found
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
