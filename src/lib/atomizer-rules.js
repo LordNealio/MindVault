@@ -8,29 +8,66 @@ export const ATOMIZER_GOALS = [
     keywords: ["stronger", "strength", "muscle", "lift", "weights", "compound"],
     atoms: [
       {
-        title: "Strength Session",
+        title: "Barbell Strength Session",
+        approach: "Gym, barbell — fastest strength gains",
         full: "60 min: 5-min warm-up, 3 compound lifts (5 sets x 5 reps), 10-min cool-down",
         reduced: "30 min: 3-min warm-up, 2 compound lifts (3 sets x 5 reps), 5-min cool-down",
         minimum: "15 min: 1 compound lift (3 sets x 5 reps)",
+        starter: "First 2 weeks: use just the empty bar or light dumbbells and film one set to check form. Strength comes from consistency, not weight.",
         cue: { time: "06:00", location: "Gym", context: "After breakfast" },
         cadence: "FREQ=WEEKLY;BYDAY=MO,WE,FR",
         ratings: { difficulty: 8, timeRequired: 7, enjoyment: 8, impact: 9, alignment: 9 },
+      },
+      {
+        title: "Bodyweight Basics",
+        approach: "At home, no equipment — the safest on-ramp",
+        full: "30 min: squats, push-ups (or wall push-ups), lunges, plank — 3 rounds",
+        reduced: "15 min: squats, push-ups, plank — 2 rounds",
+        minimum: "5 min: 10 squats + 30-second plank",
+        starter: "First 2 weeks: do the minimum version every scheduled day. The goal is showing up, and easier variations (wall push-ups, half squats) fully count.",
+        cue: { time: "07:00", location: "Home", context: "Before shower" },
+        cadence: "FREQ=WEEKLY;BYDAY=MO,WE,FR",
+        ratings: { difficulty: 3, timeRequired: 3, enjoyment: 6, impact: 7, alignment: 9 },
+      },
+      {
+        title: "Kettlebell Circuit",
+        approach: "One kettlebell at home — strength + conditioning",
+        full: "30 min: swings, goblet squats, presses, carries — 4 rounds",
+        reduced: "15 min: swings + goblet squats — 3 rounds",
+        minimum: "5 min: 2 sets of swings",
+        starter: "First 2 weeks: learn the hip hinge with a light bell before swinging anything heavy — a 10-minute video on swing form is the best investment you'll make.",
+        cue: { time: "17:30", location: "Home", context: "After work" },
+        cadence: "FREQ=WEEKLY;BYDAY=TU,TH,SA",
+        ratings: { difficulty: 6, timeRequired: 4, enjoyment: 7, impact: 8, alignment: 9 },
       },
     ],
   },
   {
     goalId: "read-more",
     title: "Read More",
-    keywords: ["read", "reading", "book", "learn", "knowledge", "literature"],
+    keywords: ["read", "reading", "book", "knowledge", "literature"],
     atoms: [
       {
-        title: "Daily Reading Session",
+        title: "Bedtime Reading",
+        approach: "Replace evening scrolling — reading as wind-down",
         full: "45 min of focused reading",
         reduced: "20 min of reading",
-        minimum: "10 min of reading",
+        minimum: "1 page — yes, one page counts",
+        starter: "First 2 weeks: leave the book on your pillow in the morning and charge your phone outside arm's reach. Pick a page-turner, not the book you think you *should* read.",
         cue: { time: "21:00", location: "Bedroom", context: "Before bed" },
         cadence: "FREQ=DAILY",
         ratings: { difficulty: 3, timeRequired: 5, enjoyment: 8, impact: 7, alignment: 9 },
+      },
+      {
+        title: "Pocket Reading",
+        approach: "Fill dead time — commutes, queues, waiting rooms",
+        full: "30 min across the day in found moments",
+        reduced: "15 min: one commute or lunch break",
+        minimum: "5 min in any queue",
+        starter: "First 2 weeks: put an ebook/app icon where a social app used to be. Every time you'd scroll, read instead — even one paragraph.",
+        cue: { time: null, location: "Anywhere", context: "Waiting time" },
+        cadence: "FREQ=DAILY",
+        ratings: { difficulty: 2, timeRequired: 3, enjoyment: 7, impact: 6, alignment: 8 },
       },
     ],
   },
@@ -41,28 +78,76 @@ export const ATOMIZER_GOALS = [
     atoms: [
       {
         title: "Morning Run",
+        approach: "Outdoors — cardio + fresh air + routine anchor",
         full: "40 min run at comfortable pace",
         reduced: "20 min jog",
         minimum: "10 min walk/jog mix",
+        starter: "First 2 weeks: run slower than feels right — if you can't hold a conversation, ease up. Lay out your shoes and clothes the night before.",
         cue: { time: "06:30", location: "Park", context: "Early morning" },
         cadence: "FREQ=WEEKLY;BYDAY=MO,WE,FR",
         ratings: { difficulty: 6, timeRequired: 7, enjoyment: 7, impact: 8, alignment: 8 },
+      },
+      {
+        title: "Home Workout Break",
+        approach: "At home, 10–20 min — no gear, no commute",
+        full: "20 min: jumping jacks, squats, push-ups, mountain climbers — 3 rounds",
+        reduced: "10 min: 2 rounds at your own pace",
+        minimum: "3 min: 20 jumping jacks + 10 squats",
+        starter: "First 2 weeks: attach it to something you already do daily (after morning coffee works well). Never skip twice in a row.",
+        cue: { time: "12:00", location: "Home", context: "Midday break" },
+        cadence: "FREQ=DAILY",
+        ratings: { difficulty: 3, timeRequired: 2, enjoyment: 6, impact: 7, alignment: 8 },
+      },
+      {
+        title: "Daily Movement Walk",
+        approach: "Gentlest start — walking counts as exercise",
+        full: "45 min brisk walk with podcast or music",
+        reduced: "20 min neighborhood loop",
+        minimum: "10 min around the block",
+        starter: "First 2 weeks: same time, same route — make it automatic before making it longer. A podcast you only allow on walks is a powerful hook.",
+        cue: { time: "18:00", location: "Neighborhood", context: "After dinner" },
+        cadence: "FREQ=DAILY",
+        ratings: { difficulty: 2, timeRequired: 4, enjoyment: 7, impact: 6, alignment: 8 },
       },
     ],
   },
   {
     goalId: "meditate-daily",
     title: "Meditate Daily",
-    keywords: ["meditate", "meditation", "mindfulness", "calm", "peace", "zen"],
+    keywords: ["meditate", "meditation", "mindfulness", "calm", "peace", "zen", "stress"],
     atoms: [
       {
-        title: "Meditation Session",
-        full: "20 min guided meditation",
-        reduced: "10 min meditation",
-        minimum: "5 min breathing exercise",
-        cue: { time: "07:00", location: "Home", context: "Morning" },
+        title: "Morning Sit",
+        approach: "Classic seated practice — start the day settled",
+        full: "20 min seated meditation, following the breath",
+        reduced: "10 min seated meditation",
+        minimum: "5 min of Box Breathing (built into MindVault)",
+        starter: "First 2 weeks: 5 minutes is plenty. A wandering mind isn't failure — noticing it wandered IS the rep. Same cushion, same time, every day.",
+        cue: { time: "07:00", location: "Home", context: "Before phone" },
         cadence: "FREQ=DAILY",
         ratings: { difficulty: 2, timeRequired: 4, enjoyment: 9, impact: 9, alignment: 10 },
+      },
+      {
+        title: "Body Scan Before Bed",
+        approach: "Lying down at night — doubles as a sleep aid",
+        full: "20 min guided body scan in bed",
+        reduced: "10 min scan from head to toe",
+        minimum: "3 min: three slow breaths, relax jaw and shoulders",
+        starter: "First 2 weeks: falling asleep during it counts as a win, not a failure. Phone on do-not-disturb before you start.",
+        cue: { time: "22:00", location: "Bedroom", context: "Lights out" },
+        cadence: "FREQ=DAILY",
+        ratings: { difficulty: 1, timeRequired: 3, enjoyment: 8, impact: 8, alignment: 9 },
+      },
+      {
+        title: "Walking Meditation",
+        approach: "For people who can't sit still — movement as practice",
+        full: "20 min slow walk, attention on each step and breath",
+        reduced: "10 min mindful walk during a break",
+        minimum: "2 min of fully-present walking anywhere",
+        starter: "First 2 weeks: pick a short boring route — the point is attention, not scenery. No headphones for this one.",
+        cue: { time: "12:30", location: "Outside", context: "Lunch break" },
+        cadence: "FREQ=DAILY",
+        ratings: { difficulty: 2, timeRequired: 3, enjoyment: 7, impact: 8, alignment: 9 },
       },
     ],
   },
@@ -104,13 +189,26 @@ export const ATOMIZER_GOALS = [
     keywords: ["sleep", "rest", "bed", "insomnia", "tired"],
     atoms: [
       {
-        title: "Sleep Hygiene Routine",
-        full: "30 min bedtime routine (no screens, cool room, etc.)",
+        title: "Evening Wind-Down",
+        approach: "Fix the end of the day — screens off, lights down",
+        full: "30 min bedtime routine (no screens, cool room, light stretch)",
         reduced: "15 min wind-down (dim lights, no screens)",
         minimum: "5 min breathing before bed",
+        starter: "First 2 weeks: pick ONE change — screens off 30 min before bed is the highest-impact single move. Don't overhaul everything at once.",
         cue: { time: "22:00", location: "Bedroom", context: "Before bed" },
         cadence: "FREQ=DAILY",
         ratings: { difficulty: 4, timeRequired: 5, enjoyment: 7, impact: 10, alignment: 10 },
+      },
+      {
+        title: "Consistent Wake Time",
+        approach: "Fix the start instead — anchors your whole sleep cycle",
+        full: "Wake at the same time daily + 5 min of morning light outside",
+        reduced: "Same wake time, light through a window",
+        minimum: "Same wake time, no snooze",
+        starter: "First 2 weeks: same wake time even on weekends (this is the hard part and the whole point). Morning light within 30 minutes of waking makes it dramatically easier.",
+        cue: { time: "06:30", location: "Bedroom", context: "Alarm" },
+        cadence: "FREQ=DAILY",
+        ratings: { difficulty: 5, timeRequired: 2, enjoyment: 5, impact: 9, alignment: 9 },
       },
     ],
   },
@@ -425,18 +523,31 @@ export function personalizeAtoms(atoms, domain, answers) {
   }
 
   if (answers.level === "Beginner") {
+    // Penalty must scale with base difficulty, or it shifts every atom
+    // equally and never changes the ranking.
     result.forEach(a => {
       if (GOAL_DOMAINS[a.goalId] === "fitness") {
-        a.ratings.difficulty = clamp(a.ratings.difficulty + 2);
+        if (a.ratings.difficulty >= 6) {
+          a.ratings.difficulty = clamp(a.ratings.difficulty + 3);
+          a.notes.push("Ranked lower — this is a demanding way to start. Consider it in a month or two.");
+        } else {
+          a.ratings.alignment = clamp(a.ratings.alignment + 1);
+          a.notes.push("Great entry point for a beginner — low barrier, easy to stay consistent.");
+        }
         a.recommendedVariant = "reduced";
-        a.notes.push("As a beginner, start with the reduced version — you can level up in a few weeks.");
       }
     });
   } else if (answers.level === "Advanced") {
     result.forEach(a => {
       if (GOAL_DOMAINS[a.goalId] === "fitness") {
-        a.ratings.difficulty = clamp(a.ratings.difficulty - 2);
-        a.notes.push("Ranked higher — your experience makes this very doable.");
+        if (a.ratings.difficulty >= 6) {
+          a.ratings.difficulty = clamp(a.ratings.difficulty - 2);
+          a.notes.push("Ranked higher — your experience makes this very doable.");
+        } else {
+          a.ratings.alignment = clamp(a.ratings.alignment - 2);
+          a.ratings.impact = clamp(a.ratings.impact - 1);
+          a.notes.push("Probably too easy to drive progress at your level — better as a rest-day filler.");
+        }
       }
     });
   }

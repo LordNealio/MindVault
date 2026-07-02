@@ -252,7 +252,7 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
                     {atom.title}
                   </div>
                   <div style={{ fontSize: 11, color: D.muted }}>
-                    {atom.goalTitle}
+                    {atom.approach || atom.goalTitle}
                   </div>
                 </div>
                 <div
@@ -293,7 +293,17 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
                   </div>
                 ))}
 
-                <div style={{ fontSize: 11, color: D.muted, marginBottom: 12, marginTop: 12 }}>
+                {atom.starter && (
+                  <div style={{
+                    background: "#EAF5EE", border: "1px solid #CDE8D6",
+                    borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8,
+                    fontSize: 11, color: "#2F5D3F", lineHeight: 1.5,
+                  }}>
+                    🌱 <strong>Getting started:</strong> {atom.starter}
+                  </div>
+                )}
+
+                <div style={{ fontSize: 11, color: D.muted, marginBottom: 12, marginTop: 8 }}>
                   <div><strong>Cue:</strong> {atom.cue?.time || "Flexible"} • {atom.cue?.context || atom.cue?.location}</div>
                   <div><strong>Frequency:</strong> {atom.cadence}</div>
                 </div>
