@@ -340,6 +340,189 @@ export const ATOMIZER_GOALS = [
   },
 ];
 
+// Each goal belongs to a domain; domains drive which qualification
+// questions are asked and how answers reshape recommendations.
+export const GOAL_DOMAINS = {
+  "get-stronger": "fitness",
+  "exercise-regularly": "fitness",
+  "stretch-daily": "fitness",
+  "walk-more": "fitness",
+  "read-more": "learning",
+  "learn-a-skill": "learning",
+  "practice-music": "learning",
+  "learn-language": "learning",
+  "practice-drawing": "learning",
+  "meditate-daily": "wellness",
+  "journal-regularly": "wellness",
+  "sleep-better": "wellness",
+  "practice-gratitude": "wellness",
+  "spend-time-nature": "wellness",
+  "practice-breathing": "wellness",
+  "eat-healthier": "wellness",
+  "stay-hydrated": "wellness",
+  "strengthen-relationships": "life",
+  "grow-business": "life",
+  "clean-organize": "life",
+  "save-money": "life",
+};
+
+export const QUALIFICATION_BANKS = {
+  fitness: [
+    { id: "level", q: "Current fitness level?", opts: ["Beginner", "Intermediate", "Advanced"] },
+    { id: "health", q: "Any injuries or health conditions?", opts: ["None", "Minor", "Significant / unsure"] },
+    { id: "commitment", q: "How committed are you right now?", opts: ["Just exploring", "Somewhat committed", "All in"] },
+  ],
+  learning: [
+    { id: "experience", q: "Experience with this topic?", opts: ["Complete beginner", "Some experience", "Advanced"] },
+    { id: "timeBudget", q: "Time available per week?", opts: ["Under 2 hrs", "2–5 hrs", "5+ hrs"] },
+    { id: "commitment", q: "How committed are you right now?", opts: ["Just exploring", "Somewhat committed", "All in"] },
+  ],
+  wellness: [
+    { id: "stress", q: "Current stress level?", opts: ["Low", "Moderate", "High"] },
+    { id: "sleep", q: "Sleep quality lately?", opts: ["Good", "Fair", "Poor"] },
+    { id: "commitment", q: "How committed are you right now?", opts: ["Just exploring", "Somewhat committed", "All in"] },
+  ],
+  life: [
+    { id: "bandwidth", q: "How full is your schedule?", opts: ["Pretty open", "Busy", "Overloaded"] },
+    { id: "commitment", q: "How committed are you right now?", opts: ["Just exploring", "Somewhat committed", "All in"] },
+  ],
+};
+
+const clamp = (n) => Math.max(1, Math.min(10, n));
+
+// Reshape atom list based on the user's qualification answers.
+// Returns new atoms with adjusted ratings/score, a recommended starting
+// variant, per-atom "why" notes, and a filtered list when safety demands it.
+export function personalizeAtoms(atoms, domain, answers) {
+  let result = atoms.map(atom => ({
+    ...atom,
+    ratings: { ...atom.ratings },
+    notes: [],
+    recommendedVariant: "full",
+    safetyFlag: false,
+  }));
+
+  // ── Fitness ──────────────────────────────────────────────
+  if (answers.health === "Significant / unsure") {
+    // Gate high-intensity physical habits entirely; keep gentle ones.
+    result = result.filter(a =>
+      GOAL_DOMAINS[a.goalId] !== "fitness" || a.ratings.difficulty <= 4
+    );
+    result.forEach(a => {
+      if (GOAL_DOMAINS[a.goalId] === "fitness") {
+        a.safetyFlag = true;
+        a.notes.push("Kept low-intensity because of your health answer — please check with a doctor before increasing.");
+      }
+    });
+  } else if (answers.health === "Minor") {
+    result.forEach(a => {
+      if (GOAL_DOMAINS[a.goalId] === "fitness" && a.ratings.difficulty >= 7) {
+        a.ratings.difficulty = clamp(a.ratings.difficulty + 2);
+        a.safetyFlag = true;
+        a.notes.push("Ranked lower due to your injury — modify movements that aggravate it.");
+      }
+    });
+  }
+
+  if (answers.level === "Beginner") {
+    result.forEach(a => {
+      if (GOAL_DOMAINS[a.goalId] === "fitness") {
+        a.ratings.difficulty = clamp(a.ratings.difficulty + 2);
+        a.recommendedVariant = "reduced";
+        a.notes.push("As a beginner, start with the reduced version — you can level up in a few weeks.");
+      }
+    });
+  } else if (answers.level === "Advanced") {
+    result.forEach(a => {
+      if (GOAL_DOMAINS[a.goalId] === "fitness") {
+        a.ratings.difficulty = clamp(a.ratings.difficulty - 2);
+        a.notes.push("Ranked higher — your experience makes this very doable.");
+      }
+    });
+  }
+
+  // ── Learning ─────────────────────────────────────────────
+  if (answers.experience === "Complete beginner") {
+    result.forEach(a => {
+      if (GOAL_DOMAINS[a.goalId] === "learning") {
+        a.recommendedVariant = "reduced";
+        a.notes.push("Short, frequent sessions beat marathons when you're starting out.");
+      }
+    });
+  }
+  if (answers.timeBudget === "Under 2 hrs") {
+    result.forEach(a => {
+      if (a.ratings.timeRequired >= 6) {
+        a.ratings.timeRequired = clamp(a.ratings.timeRequired + 2);
+        a.recommendedVariant = "minimum";
+        a.notes.push("Your week is tight — the minimum version keeps the streak alive.");
+      }
+    });
+  }
+
+  // ── Wellness ─────────────────────────────────────────────
+  if (answers.stress === "High") {
+    result.forEach(a => {
+      if (["meditate-daily", "practice-breathing", "spend-time-nature", "sleep-better"].includes(a.goalId)) {
+        a.ratings.alignment = clamp(a.ratings.alignment + 1);
+        a.ratings.impact = clamp(a.ratings.impact + 1);
+        a.notes.push("Boosted — calming practices tend to pay off fastest under high stress.");
+      }
+      if (a.ratings.difficulty >= 7) {
+        a.ratings.difficulty = clamp(a.ratings.difficulty + 1);
+        a.notes.push("Demanding habits are harder to sustain under high stress — consider starting gentler.");
+      }
+    });
+  }
+  if (answers.sleep === "Poor") {
+    result.forEach(a => {
+      if (a.goalId === "sleep-better") {
+        a.ratings.impact = clamp(a.ratings.impact + 1);
+        a.ratings.alignment = clamp(a.ratings.alignment + 1);
+        a.notes.push("Boosted — better sleep multiplies every other habit.");
+      }
+    });
+  }
+
+  // ── Life / bandwidth ─────────────────────────────────────
+  if (answers.bandwidth === "Overloaded") {
+    result.forEach(a => {
+      a.recommendedVariant = a.recommendedVariant === "full" ? "reduced" : a.recommendedVariant;
+      if (a.ratings.timeRequired >= 6) {
+        a.ratings.timeRequired = clamp(a.ratings.timeRequired + 1);
+      }
+    });
+  }
+
+  // ── Commitment (all domains) ─────────────────────────────
+  if (answers.commitment === "Just exploring") {
+    result.forEach(a => {
+      a.recommendedVariant = "minimum";
+      a.notes.push("Start with just the minimum — consistency first, intensity later.");
+    });
+  } else if (answers.commitment === "All in") {
+    result.forEach(a => {
+      if (a.recommendedVariant === "minimum") a.recommendedVariant = "reduced";
+    });
+  }
+
+  // Re-score with adjusted ratings and re-rank.
+  result.forEach(a => { a.score = calculateScore(a.ratings); });
+  result.sort((a, b) => b.score - a.score);
+  return result;
+}
+
+// Majority-vote domain across matched goals, so mixed matches still
+// get the most relevant question bank.
+export function detectDomain(goals) {
+  const counts = {};
+  goals.forEach(g => {
+    const d = GOAL_DOMAINS[g.goalId] || "life";
+    counts[d] = (counts[d] || 0) + 1;
+  });
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "life";
+}
+
 export function calculateScore(ratings) {
   const { difficulty, timeRequired, enjoyment, impact, alignment } = ratings;
   const ease = (enjoyment / ((difficulty + 1) * (timeRequired + 1))) * 10;

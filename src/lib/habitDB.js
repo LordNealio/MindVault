@@ -1,10 +1,12 @@
 // Habit System: Local-first storage using IndexedDB
-// Database: mindvault_v1
+// Database: mindvault_habits_v1 — must be separate from mindvault_v1,
+// which App.jsx and metrics.js open at the same version with different
+// schemas (same-name DBs race and whoever loses gets no object stores).
 // Stores: habits, habit_versions, habit_occurrences, habit_notes, habit_sops
 
 export async function initHabitDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open("mindvault_v1", 1);
+    const req = indexedDB.open("mindvault_habits_v1", 1);
     req.onerror = () => reject(req.error);
     req.onsuccess = () => resolve(req.result);
     req.onupgradeneeded = (e) => {

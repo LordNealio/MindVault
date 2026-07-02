@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createHabit } from "../../lib/habitService.js";
-import { searchGoals } from "../../lib/atomizer-rules.js";
+import { searchGoals, detectDomain, personalizeAtoms, QUALIFICATION_BANKS } from "../../lib/atomizer-rules.js";
 import { HabitFormScreen } from "./HabitFormScreen.jsx";
 
 const D = {
@@ -9,29 +9,11 @@ const D = {
   gr: "#3DD68C",
 };
 
-const QUALIFICATIONS = {
-  fitness: [
-    { q: "Current fitness level?", opts: ["Beginner", "Intermediate", "Advanced"] },
-    { q: "Any injuries or conditions?", opts: ["None", "Minor", "Need doctor clearance"] },
-  ],
-  learning: [
-    { q: "Experience with this topic?", opts: ["Complete beginner", "Some experience", "Advanced"] },
-    { q: "Time available per week?", opts: ["<2 hrs", "2-5 hrs", "5+ hrs"] },
-  ],
-  wellness: [
-    { q: "Current stress level?", opts: ["Low", "Moderate", "High"] },
-    { q: "Sleep quality?", opts: ["Good", "Fair", "Poor"] },
-  ],
-  default: [
-    { q: "How motivated are you?", opts: ["Just exploring", "Somewhat committed", "Very committed"] },
-  ],
-};
-
 export function AtomizerFlow({ onHabitCreated, onCancel }) {
   const [step, setStep] = useState("input"); // input | qualify | candidates | editing
   const [goalText, setGoalText] = useState("");
-  const [category, setCategory] = useState(null);
-  const [qualifications, setQualifications] = useState({});
+  const [domain, setDomain] = useState("life");
+  const [answers, setAnswers] = useState({});
   const [candidates, setCandidates] = useState([]);
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [expandedCard, setExpandedCard] = useState(null);
@@ -43,9 +25,7 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
       return;
     }
 
-    // Detect category from results
-    const detectedCategory = results[0]?.goalTitle?.toLowerCase().split(" ")[0] || "default";
-    setCategory(detectedCategory);
+    setDomain(detectDomain(results));
     setStep("qualify");
   };
 
@@ -63,8 +43,13 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
       });
     });
 
-    atoms.sort((a, b) => b.score - a.score);
-    setCandidates(atoms.slice(0, 10));
+    const personalized = personalizeAtoms(atoms, domain, answers);
+    if (personalized.length === 0) {
+      alert("Based on your health answers, we'd rather not suggest these habits without a doctor's input. Try a gentler goal like walking or breathing exercises.");
+      return;
+    }
+
+    setCandidates(personalized.slice(0, 10));
     setStep("candidates");
   };
 
@@ -137,16 +122,15 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
   // ────────────────────────────────────────────────────────────
   // STEP 2: QUALIFY
   if (step === "qualify") {
-    const qs = QUALIFICATIONS[category] || QUALIFICATIONS.default;
-    const allAnswered = Object.keys(qualifications).length === qs.length;
+    const qs = QUALIFICATION_BANKS[domain] || QUALIFICATION_BANKS.life;
+    const allAnswered = qs.every(q => answers[q.id]);
 
     return (
       <div style={{ padding: 20, maxWidth: 600, margin: "0 auto", paddingBottom: 40 }}>
         <button
           onClick={() => {
             setStep("input");
-            setQualifications({});
-            setCategory(null);
+            setAnswers({});
           }}
           style={{
             background: "transparent", border: "none",
@@ -161,12 +145,12 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
           Tell us a bit more
         </h2>
         <p style={{ fontSize: 12, color: D.muted, marginBottom: 20 }}>
-          Your answers help us recommend safer, more personalized habits
+          Your answers directly shape which habits we suggest — and how big to start
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 20 }}>
-          {qs.map((q, idx) => (
-            <div key={idx}>
+          {qs.map(q => (
+            <div key={q.id}>
               <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: D.bk }}>
                 {q.q}
               </div>
@@ -174,11 +158,11 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
                 {q.opts.map(opt => (
                   <button
                     key={opt}
-                    onClick={() => setQualifications({ ...qualifications, [idx]: opt })}
+                    onClick={() => setAnswers({ ...answers, [q.id]: opt })}
                     style={{
                       padding: "10px", borderRadius: 8,
-                      background: qualifications[idx] === opt ? D.yl : D.surf,
-                      border: `1px solid ${qualifications[idx] === opt ? D.yl : D.border}`,
+                      background: answers[q.id] === opt ? D.yl : D.surf,
+                      border: `1px solid ${answers[q.id] === opt ? D.yl : D.border}`,
                       cursor: "pointer", fontSize: 11, fontWeight: 600, color: D.bk,
                     }}
                   >
@@ -209,16 +193,14 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
   // ────────────────────────────────────────────────────────────
   // STEP 3: CANDIDATES
   if (step === "candidates") {
-    const needsCaution = category === "fitness" || goalText.toLowerCase().includes("exercise");
+    const needsCaution = domain === "fitness" &&
+      (answers.health === "Minor" || answers.health === "Significant / unsure");
 
     return (
       <div style={{ padding: 20, maxWidth: 600, margin: "0 auto", paddingBottom: 40 }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
           <button
-            onClick={() => {
-              setStep("qualify");
-              setQualifications({});
-            }}
+            onClick={() => setStep("qualify")}
             style={{
               background: "transparent", border: "none",
               cursor: "pointer", fontSize: 12, color: D.muted,
@@ -237,12 +219,12 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
             background: "#FFF3CD", border: "1px solid #FFE69C", borderRadius: 8,
             padding: 12, marginBottom: 16, fontSize: 12, color: "#856404",
           }}>
-            ⚠️ <strong>Important:</strong> Before starting any new exercise or fitness habit, consider consulting a healthcare provider, especially if you have any health concerns.
+            ⚠️ <strong>Important:</strong> Based on your answers, please check with a healthcare provider before starting or intensifying a fitness habit. Suggestions below are kept gentle on purpose.
           </div>
         )}
 
         <div style={{ fontSize: 12, color: D.muted, marginBottom: 16 }}>
-          {candidates.length} personalized templates found
+          {candidates.length} templates, ranked for your answers
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -285,17 +267,33 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
               </summary>
 
               <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${D.border}` }}>
-                <div style={{ fontSize: 12, marginBottom: 8, color: D.bk }}>
-                  <strong>Full:</strong> {atom.full}
-                </div>
-                <div style={{ fontSize: 12, marginBottom: 8, color: D.bk }}>
-                  <strong>Reduced:</strong> {atom.reduced}
-                </div>
-                <div style={{ fontSize: 12, marginBottom: 12, color: D.bk }}>
-                  <strong>Minimum:</strong> {atom.minimum}
-                </div>
+                {atom.notes?.length > 0 && (
+                  <div style={{
+                    background: D.bg, borderRadius: 8, padding: 10,
+                    marginBottom: 12, fontSize: 11, color: D.bk, lineHeight: 1.5,
+                  }}>
+                    {atom.notes.map((note, i) => (
+                      <div key={i}>💡 {note}</div>
+                    ))}
+                  </div>
+                )}
 
-                <div style={{ fontSize: 11, color: D.muted, marginBottom: 12 }}>
+                {["full", "reduced", "minimum"].map(variant => (
+                  <div key={variant} style={{ fontSize: 12, marginBottom: 8, color: D.bk }}>
+                    <strong style={{ textTransform: "capitalize" }}>{variant}:</strong> {atom[variant]}
+                    {atom.recommendedVariant === variant && (
+                      <span style={{
+                        marginLeft: 6, fontSize: 10, fontWeight: 700,
+                        background: D.gr, color: "#fff", borderRadius: 4,
+                        padding: "1px 6px",
+                      }}>
+                        START HERE
+                      </span>
+                    )}
+                  </div>
+                ))}
+
+                <div style={{ fontSize: 11, color: D.muted, marginBottom: 12, marginTop: 12 }}>
                   <div><strong>Cue:</strong> {atom.cue?.time || "Flexible"} • {atom.cue?.context || atom.cue?.location}</div>
                   <div><strong>Frequency:</strong> {atom.cadence}</div>
                 </div>
@@ -342,10 +340,15 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
 // Edit form for candidates
 
 function AtomizerEditForm({ candidate, onSubmit, onCancel }) {
+  // Scale the starting duration ladder down when personalization
+  // recommends starting smaller (beginner, low commitment, tight schedule).
+  const variantScale = { full: 1, reduced: 0.5, minimum: 0.25 }[candidate.recommendedVariant] || 1;
+  const baseDuration = Math.max(5, Math.round(candidate.ratings.timeRequired * 10 * variantScale));
+
   const [title, setTitle] = useState(candidate.title);
-  const [durationFull, setDurationFull] = useState(candidate.ratings.timeRequired * 10);
-  const [durationReduced, setDurationReduced] = useState(Math.ceil((candidate.ratings.timeRequired * 10) * 0.5));
-  const [durationMinimum, setDurationMinimum] = useState(Math.ceil((candidate.ratings.timeRequired * 10) * 0.25));
+  const [durationFull, setDurationFull] = useState(baseDuration);
+  const [durationReduced, setDurationReduced] = useState(Math.max(3, Math.ceil(baseDuration * 0.5)));
+  const [durationMinimum, setDurationMinimum] = useState(Math.max(2, Math.ceil(baseDuration * 0.25)));
   const [difficulty, setDifficulty] = useState(candidate.ratings.difficulty);
   const [enjoyment, setEnjoyment] = useState(candidate.ratings.enjoyment);
   const [impact, setImpact] = useState(candidate.ratings.impact);

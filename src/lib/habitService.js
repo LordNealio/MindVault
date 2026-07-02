@@ -90,10 +90,14 @@ export async function createHabit(habitData, rrule) {
     changeReason: "Initial creation",
   };
 
-  // 3. Generate occurrences for next 90 days
+  // 3. Generate occurrences for next 90 days.
+  // Start from local midnight, not the current instant: RRULE's implicit
+  // DTSTART is millisecond-truncated parse time, so between(now, …) can
+  // land just after it and silently drop the creation day.
   const now_date = new Date();
+  const startOfToday = new Date(now_date.getFullYear(), now_date.getMonth(), now_date.getDate(), 0, 0, 0);
   const endDate = new Date(now_date.getTime() + 90 * 24 * 60 * 60 * 1000);
-  const occurrenceDates = generateOccurrences(rrule, now_date, endDate);
+  const occurrenceDates = generateOccurrences(rrule, startOfToday, endDate);
 
   const occurrences = occurrenceDates.map(occ => ({
     id: generateId(),
@@ -249,9 +253,11 @@ export async function getLatestVersion(habitId) {
 // ── CRUD: OCCURRENCES ──────────────────────────────────────
 export async function getOccurrencesForDate(targetDate) {
   const db = await initHabitDB();
-  const dateStr = targetDate.toISOString().split("T")[0];
-  const dayStart = new Date(`${dateStr}T00:00:00Z`);
-  const dayEnd = new Date(`${dateStr}T23:59:59Z`);
+  // Window must span the LOCAL calendar day. Deriving it from
+  // toISOString() (UTC) makes today's habits invisible for most of the
+  // day anywhere west of Greenwich.
+  const dayStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0);
+  const dayEnd = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
 
   return new Promise((resolve, reject) => {
     const tx = db.transaction(["habit_occurrences"], "readonly");
