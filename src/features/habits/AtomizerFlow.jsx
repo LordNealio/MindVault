@@ -1,7 +1,17 @@
 import { useState } from "react";
 import { createHabit } from "../../lib/habitService.js";
 import { searchGoals, detectDomain, personalizeAtoms, QUALIFICATION_BANKS } from "../../lib/atomizer-rules.js";
+import { callProxy } from "../../lib/ai.js";
 import { HabitFormScreen } from "./HabitFormScreen.jsx";
+
+const AI_COACH_SYSTEM = `You are a warm, practical habit coach inside MindVault, a private journaling app. The user described a goal and answered qualification questions; you also receive the app's template suggestions.
+
+Write a short personalized starting plan in plain text (no markdown symbols). Structure:
+1. One sentence naming which approach fits them best and WHY, referencing their specific answers.
+2. A concrete "your first two weeks" plan: exact days, exact durations, starting versions. Small and winnable beats ambitious.
+3. One pitfall this specific person should watch for.
+
+Rules: under 200 words. Never give medical advice; if they indicated injuries or health concerns, keep intensity low and tell them to clear it with a professional first. Never invent equipment or time they didn't mention. Warm but not gushing.`;
 
 const D = {
   bg: "#F0EDE5", bk: "#0A0A0A", muted: "#9B9589",
@@ -17,6 +27,37 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
   const [candidates, setCandidates] = useState([]);
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [expandedCard, setExpandedCard] = useState(null);
+  const [aiPlan, setAiPlan] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
+
+  // AI enhance rides the existing hardened proxy; token lives in mv3_settings.
+  const accessToken = (() => {
+    try { return JSON.parse(localStorage.getItem("mv3_settings") || "{}").accessToken || ""; }
+    catch { return ""; }
+  })();
+
+  const handleEnhanceWithAI = async () => {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const summary = candidates.slice(0, 3).map(c =>
+        `- ${c.title} (${c.approach || c.goalTitle}): full=${c.full} | reduced=${c.reduced} | minimum=${c.minimum}`
+      ).join("\n");
+      const userMsg = `Goal: ${goalText}\nDomain: ${domain}\nMy answers: ${JSON.stringify(answers)}\n\nApp's top template suggestions:\n${summary}`;
+      const text = await callProxy(
+        [{ role: "user", content: userMsg }],
+        AI_COACH_SYSTEM,
+        accessToken,
+        1024
+      );
+      setAiPlan(text);
+    } catch (err) {
+      setAiError(`Couldn't reach the AI coach (${err.message}). The templates below work offline either way.`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleSearchGoals = () => {
     const results = searchGoals(goalText);
@@ -226,6 +267,57 @@ export function AtomizerFlow({ onHabitCreated, onCancel }) {
         <div style={{ fontSize: 12, color: D.muted, marginBottom: 16 }}>
           {candidates.length} templates, ranked for your answers
         </div>
+
+        {accessToken && !aiPlan && (
+          <div style={{ marginBottom: 16 }}>
+            <button
+              onClick={handleEnhanceWithAI}
+              disabled={aiLoading}
+              style={{
+                width: "100%", padding: "12px", borderRadius: 8,
+                background: aiLoading ? D.muted : D.bk, color: "#fff",
+                border: "none", cursor: aiLoading ? "wait" : "pointer",
+                fontSize: 12, fontWeight: 700,
+              }}
+            >
+              {aiLoading ? "COACHING IN PROGRESS..." : "✨ GET AN AI-PERSONALIZED PLAN"}
+            </button>
+            <div style={{ fontSize: 10, color: D.muted, marginTop: 6, textAlign: "center" }}>
+              Sends your goal and answers (nothing else) to Claude via MindVault's secure proxy
+            </div>
+            {aiError && (
+              <div style={{
+                marginTop: 8, padding: 10, borderRadius: 8, fontSize: 11,
+                background: "#ffe6e6", color: "#a33",
+              }}>
+                {aiError}
+              </div>
+            )}
+          </div>
+        )}
+
+        {aiPlan && (
+          <div style={{
+            background: D.bk, color: "#F0EDE5", borderRadius: 12,
+            padding: 16, marginBottom: 16, fontSize: 12, lineHeight: 1.7,
+            whiteSpace: "pre-wrap",
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", marginBottom: 8, color: D.yl }}>
+              ✨ YOUR PERSONALIZED PLAN
+            </div>
+            {aiPlan}
+            <button
+              onClick={() => setAiPlan(null)}
+              style={{
+                display: "block", marginTop: 12, padding: "6px 10px",
+                borderRadius: 6, border: "1px solid #444", background: "transparent",
+                color: D.muted, fontSize: 10, cursor: "pointer",
+              }}
+            >
+              DISMISS
+            </button>
+          </div>
+        )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {candidates.map((atom, idx) => (
