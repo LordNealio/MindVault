@@ -1,7 +1,9 @@
 // Metrics Service: Local-only usage tracking and aggregation
-// Events stored in IndexedDB (mindvault_v1.metrics_events)
+// Own database (mindvault_metrics_v1) — mindvault_v1 belongs to App.jsx's
+// journal store; opening the same name at the same version with a
+// different schema means this module's store is never created.
 
-const DB_NAME = "mindvault_v1";
+const DB_NAME = "mindvault_metrics_v1";
 const STORE_NAME = "metrics_events";
 
 // Initialize IndexedDB store for metrics
@@ -23,11 +25,20 @@ export async function initMetricsDB() {
   });
 }
 
+// Local calendar date as YYYY-MM-DD. toISOString() is UTC and shifts
+// evening events onto the wrong day west of Greenwich.
+export function localDateKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 // Log a single event
 export async function trackEvent(eventType, feature, metadata = {}) {
   const db = await initMetricsDB();
   const now = new Date();
-  const dateKey = now.toISOString().split("T")[0]; // YYYY-MM-DD
+  const dateKey = localDateKey(now);
 
   const event = {
     timestamp: now.toISOString(),
@@ -50,8 +61,8 @@ export async function trackEvent(eventType, feature, metadata = {}) {
 // Get all events in date range
 export async function getMetricsForDateRange(startDate, endDate) {
   const db = await initMetricsDB();
-  const startKey = startDate.toISOString().split("T")[0];
-  const endKey = endDate.toISOString().split("T")[0];
+  const startKey = localDateKey(startDate);
+  const endKey = localDateKey(endDate);
 
   return new Promise((resolve, reject) => {
     const tx = db.transaction([STORE_NAME], "readonly");
@@ -72,7 +83,7 @@ export async function calculateMetrics() {
   const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   const allEvents = await getMetricsForDateRange(thirtyDaysAgo, now);
-  const todayEvents = allEvents.filter(e => e.dateKey === today.toISOString().split("T")[0]);
+  const todayEvents = allEvents.filter(e => e.dateKey === localDateKey(today));
   const weekEvents = allEvents.filter(e => {
     const eventDate = new Date(e.dateKey);
     return eventDate >= sevenDaysAgo && eventDate <= today;
