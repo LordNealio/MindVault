@@ -162,7 +162,7 @@ export function ImageGrid({ images, title, onRemove }) {
  * images: array of processed records ({id, full, thumb, name})
  * onChange: (nextImages) => void
  */
-export function VaultImagePicker({ images, onChange, max = MAX_IMAGES_PER_ITEM, compact }) {
+export function VaultImagePicker({ images, onChange, max = MAX_IMAGES_PER_ITEM, compact, alreadyHave = 0 }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(0);          // files currently decoding
   const [errors, setErrors] = useState([]);     // per-file failures
@@ -242,8 +242,14 @@ export function VaultImagePicker({ images, onChange, max = MAX_IMAGES_PER_ITEM, 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        {/* When adding to a saved entry, count against the entry's real
+            total (already-saved + pending) so "N of 10" always means the
+            same thing to the reader. */}
         <span style={{ fontSize: 11, fontWeight: 700, color: images.length ? D.bk : D.muted }}>
-          {images.length} of {max} images
+          {alreadyHave + images.length} of {alreadyHave + max} images
+          {alreadyHave > 0 && (
+            <span style={{ fontWeight: 400, color: D.muted }}> · {alreadyHave} already saved</span>
+          )}
         </span>
         {images.length > 1 && (
           <span style={{ fontSize: 9, color: D.muted }}>◀ ▶ to reorder</span>

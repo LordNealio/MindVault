@@ -484,6 +484,7 @@ function VaultItemCard({ item, onDelete, onUpdate }) {
                       images={pendingAdds}
                       onChange={setPendingAdds}
                       max={MAX_IMAGES_PER_ITEM - images.length}
+                      alreadyHave={images.length}
                       compact
                     />
                     <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
