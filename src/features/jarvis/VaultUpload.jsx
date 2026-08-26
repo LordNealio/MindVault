@@ -1,5 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { VAULT_CATEGORIES } from "./Jarvis.jsx";
+import { VaultImagePicker, ImageGrid } from "./VaultImagePicker.jsx";
+import {
+  putImages, getImages, deleteImages, deleteImage,
+  migrateLegacyPhotoItem, imageIdsOf, hasLegacyPhoto,
+  MAX_IMAGES_PER_ITEM,
+} from "../../lib/vaultMedia.js";
 
 const D = {
   bg: "#F0EDE5", white: "#FAFAF7", bl: "#1D3557", rd: "#C1121F",
@@ -37,7 +43,7 @@ const UPLOAD_TYPES = [
   { id: "note",  label: "Text Note",  icon: "✎", desc: "Write or paste text" },
   { id: "url",   label: "URL / Link", icon: "⬡", desc: "A webpage, article, video" },
   { id: "file",  label: "Document",   icon: "◧", desc: "PDF, TXT, or any text file" },
-  { id: "photo", label: "Photo",      icon: "◫", desc: "Image with a caption" },
+  { id: "photo", label: "Photos",     icon: "◫", desc: `Up to ${MAX_IMAGES_PER_ITEM} images with a caption` },
 ];
 
 // ── Upload modal ───────────────────────────────────────────────────────────
@@ -48,9 +54,10 @@ function UploadModal({ onSave, onClose }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [notes, setNotes] = useState("");
-  const [photoData, setPhotoData] = useState(null);
+  const [images, setImages] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const fileRef = useRef(null);
-  const photoRef = useRef(null);
 
   function handleFile(e) {
     const file = e.target.files?.[0];
@@ -61,29 +68,35 @@ function UploadModal({ onSave, onClose }) {
     reader.readAsText(file);
   }
 
-  function handlePhoto(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!title) setTitle(file.name.replace(/\.[^.]+$/, ""));
-    const reader = new FileReader();
-    reader.onload = ev => setPhotoData(ev.target.result);
-    reader.readAsDataURL(file);
-  }
-
-  function save() {
-    const item = {
-      id: crypto.randomUUID(),
-      type,
-      category,
-      title: title.trim() || "Untitled",
-      content: type === "photo" ? photoData : content.trim(),
-      notes: notes.trim(),
-      timestamp: Date.now(),
-    };
-    const existing = J.get("vault") || [];
-    J.set("vault", [...existing, item]);
-    onSave(item);
-    setStep("done");
+  async function save() {
+    setSaving(true);
+    setSaveError("");
+    const itemId = crypto.randomUUID();
+    try {
+      let imageIds = [];
+      if (type === "photo" && images.length) {
+        // Image bytes go to IndexedDB; only the ordered ids live in the item.
+        imageIds = await putImages(images, itemId);
+      }
+      const item = {
+        id: itemId,
+        type,
+        category,
+        title: title.trim() || "Untitled",
+        content: type === "photo" ? "" : content.trim(),
+        imageIds,
+        notes: notes.trim(),
+        timestamp: Date.now(),
+      };
+      const existing = J.get("vault") || [];
+      J.set("vault", [...existing, item]);
+      onSave(item);
+      setStep("done");
+    } catch (err) {
+      setSaveError(err?.message || "Could not save to the vault. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const cat = VAULT_CATEGORIES.find(c => c.id === category);
@@ -210,21 +223,8 @@ function UploadModal({ onSave, onClose }) {
 
             {type === "photo" && (
               <div>
-                <SLabel style={{ marginBottom: 6 }}>PHOTO</SLabel>
-                {photoData ? (
-                  <div style={{ position: "relative" }}>
-                    <img src={photoData} alt="upload" style={{ width: "100%", borderRadius: 12, objectFit: "cover", maxHeight: 200 }} />
-                    <button onClick={() => setPhotoData(null)} style={{ position: "absolute", top: 8, right: 8, background: D.rd, color: "#fff", borderRadius: 6, padding: "4px 8px", fontSize: 10 }}>remove</button>
-                  </div>
-                ) : (
-                  <button onClick={() => photoRef.current?.click()} style={{
-                    width: "100%", padding: "32px", borderRadius: 12, border: `2px dashed ${D.border}`,
-                    background: D.bg, color: D.muted, fontSize: 12,
-                  }}>
-                    Tap to pick a photo
-                  </button>
-                )}
-                <input ref={photoRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhoto} />
+                <SLabel style={{ marginBottom: 6 }}>PHOTOS</SLabel>
+                <VaultImagePicker images={images} onChange={setImages} max={MAX_IMAGES_PER_ITEM} />
               </div>
             )}
 
@@ -238,10 +238,20 @@ function UploadModal({ onSave, onClose }) {
               </div>
             </div>
 
+            {saveError && (
+              <div style={{ padding: "10px 12px", borderRadius: 10, background: "#ffe6e6", border: `1px solid ${D.rd}`, color: "#8f1218", fontSize: 11, lineHeight: 1.6 }}>
+                {saveError}
+              </div>
+            )}
+
             <Btn primary onClick={save}
-              disabled={!title.trim() && !content && !photoData}
+              disabled={saving || (!title.trim() && !content && !images.length)}
               style={{ width: "100%", marginTop: 4 }}>
-              SAVE TO VAULT
+              {saving
+                ? "SAVING…"
+                : type === "photo" && images.length
+                  ? `SAVE ${images.length} IMAGE${images.length === 1 ? "" : "S"} TO VAULT`
+                  : "SAVE TO VAULT"}
             </Btn>
             <button onClick={() => setStep("category")} style={{ textAlign: "center", fontSize: 11, color: D.muted }}>← Back</button>
           </div>
@@ -266,76 +276,74 @@ function isURL(str) {
   catch { return false; }
 }
 
-// ── Photo Lightbox ─────────────────────────────────────────────────────────
-function PhotoLightbox({ src, title, onClose }) {
-  // Download helper: for data-URL images, trigger browser save
-  function download() {
-    const a = document.createElement("a");
-    a.href = src;
-    a.download = (title || "photo") + ".jpg";
-    a.click();
-  }
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position:"fixed", inset:0, zIndex:9999,
-        background:"rgba(0,0,0,0.92)",
-        display:"flex", flexDirection:"column",
-        alignItems:"center", justifyContent:"center",
-        padding:16,
-      }}
-    >
-      {/* Top bar */}
-      <div
-        onClick={e=>e.stopPropagation()}
-        style={{width:"100%",maxWidth:480,display:"flex",justifyContent:"space-between",
-          alignItems:"center",marginBottom:12}}
-      >
-        <span style={{color:"#fff",fontSize:13,fontWeight:600,flex:1,
-          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{title}</span>
-        <div style={{display:"flex",gap:10,flexShrink:0,marginLeft:12}}>
-          <button
-            onClick={download}
-            style={{padding:"7px 14px",borderRadius:8,border:"1.5px solid rgba(255,255,255,.35)",
-              background:"rgba(255,255,255,.1)",color:"#fff",fontSize:11,
-              fontWeight:700,cursor:"pointer"}}>
-            ⬇ Save
-          </button>
-          <button
-            onClick={onClose}
-            style={{width:34,height:34,borderRadius:"50%",border:"none",
-              background:"rgba(255,255,255,.15)",color:"#fff",fontSize:18,
-              cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            ✕
-          </button>
-        </div>
-      </div>
-      {/* Image */}
-      <div
-        onClick={e=>e.stopPropagation()}
-        style={{flex:1,width:"100%",maxWidth:480,display:"flex",
-          alignItems:"center",justifyContent:"center",minHeight:0}}
-      >
-        <img
-          src={src}
-          alt={title}
-          style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",
-            borderRadius:12,boxShadow:"0 8px 40px rgba(0,0,0,.5)"}}
-        />
-      </div>
-      <div style={{marginTop:12,fontSize:10,color:"rgba(255,255,255,.4)"}}>
-        Tap outside to close
-      </div>
-    </div>
-  );
-}
-
 // ── VaultItemCard ──────────────────────────────────────────────────────────
-function VaultItemCard({ item, onDelete }) {
+function VaultItemCard({ item, onDelete, onUpdate }) {
   const [open, setOpen] = useState(false);
-  const [lightbox, setLightbox] = useState(false);
+  const [images, setImages] = useState([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [imgError, setImgError] = useState("");
+  const [addingMore, setAddingMore] = useState(false);
+  const [pendingAdds, setPendingAdds] = useState([]);
+  const [busy, setBusy] = useState(false);
   const cat = VAULT_CATEGORIES.find(c => c.id === item.category);
+
+  const ids = imageIdsOf(item);
+
+  // Load image records for this item. Legacy single-photo items that could not
+  // be migrated still render straight from item.content.
+  useEffect(() => {
+    let alive = true;
+    if (item.type !== "photo") return;
+    if (hasLegacyPhoto(item)) {
+      setImages([{ id: `legacy-${item.id}`, full: item.content, thumb: item.content, name: item.title }]);
+      return;
+    }
+    if (!ids.length) { setImages([]); return; }
+    setLoadingImages(true);
+    setImgError("");
+    getImages(ids)
+      .then(recs => {
+        if (!alive) return;
+        setImages(recs);
+        if (recs.length < ids.length) {
+          setImgError(`${ids.length - recs.length} image${ids.length - recs.length === 1 ? "" : "s"} could not be loaded from storage.`);
+        }
+      })
+      .catch(() => alive && setImgError("Could not load images from storage."))
+      .finally(() => alive && setLoadingImages(false));
+    return () => { alive = false; };
+  }, [item.id, ids.join(","), item.type]);
+
+  // Append newly picked images to an existing entry.
+  async function commitAdds() {
+    if (!pendingAdds.length) return;
+    setBusy(true);
+    try {
+      const newIds = await putImages(pendingAdds, item.id);
+      onUpdate({ ...item, imageIds: [...ids, ...newIds] });
+      setPendingAdds([]);
+      setAddingMore(false);
+    } catch {
+      setImgError("Could not save the new images. Nothing was changed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Remove exactly one image; the others are untouched.
+  async function removeOne(imageId) {
+    if (String(imageId).startsWith("legacy-")) return;
+    setBusy(true);
+    try {
+      onUpdate({ ...item, imageIds: ids.filter(i => i !== imageId) });
+      await deleteImage(imageId);
+      setImages(prev => prev.filter(im => im.id !== imageId));
+    } catch {
+      setImgError("Could not remove that image.");
+    } finally {
+      setBusy(false);
+    }
+  }
   const typeIcons = { note: "✎", url: "⬡", file: "◧", photo: "◫" };
   const ytId = item.type === "url" ? getYouTubeId(item.content || "") : null;
   const isLink = item.type === "url" && isURL(item.content || "");
@@ -435,20 +443,58 @@ function VaultItemCard({ item, onDelete }) {
               </div>
             )}
 
-            {/* Photo type */}
-            {item.type === "photo" && item.content && (
-              <button
-                onClick={() => setLightbox(true)}
-                style={{width:"100%",padding:0,background:"none",border:"none",cursor:"zoom-in",
-                  borderRadius:10,overflow:"hidden",display:"block"}}
-              >
-                <img src={item.content} alt={item.title}
-                  style={{ width: "100%", borderRadius: 10, objectFit: "contain", maxHeight: 320,
-                    display:"block" }} />
-                <div style={{fontSize:10,color:D.muted,marginTop:6,textAlign:"center"}}>
-                  Tap to zoom · save ⬇
-                </div>
-              </button>
+            {/* Photo type — multi-image grid */}
+            {item.type === "photo" && (
+              <div>
+                {loadingImages && (
+                  <div style={{ fontSize: 11, color: D.muted, padding: "12px 0" }}>Loading images…</div>
+                )}
+
+                {!loadingImages && images.length > 0 && (
+                  <ImageGrid images={images} title={item.title} onRemove={busy ? undefined : removeOne} />
+                )}
+
+                {!loadingImages && !images.length && !imgError && (
+                  <div style={{ fontSize: 11, color: D.muted, padding: "10px 0" }}>No images in this entry yet.</div>
+                )}
+
+                {imgError && (
+                  <div style={{ marginTop: 8, padding: "8px 10px", borderRadius: 8, fontSize: 11,
+                    background: "#ffe6e6", border: `1px solid ${D.rd}`, color: "#8f1218" }}>
+                    {imgError}
+                  </div>
+                )}
+
+                {/* Add more images to a saved entry */}
+                {!addingMore ? (
+                  images.length < MAX_IMAGES_PER_ITEM ? (
+                    <button onClick={() => setAddingMore(true)}
+                      style={{ marginTop: 10, padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${D.bk}`,
+                        background: "transparent", color: D.bk, fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+                      + ADD MORE PHOTOS
+                    </button>
+                  ) : (
+                    <div style={{ marginTop: 10, fontSize: 10, color: D.muted }}>
+                      Limit reached ({MAX_IMAGES_PER_ITEM} images). Remove one to add another.
+                    </div>
+                  )
+                ) : (
+                  <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: D.bg, border: `1px solid ${D.border}` }}>
+                    <VaultImagePicker
+                      images={pendingAdds}
+                      onChange={setPendingAdds}
+                      max={MAX_IMAGES_PER_ITEM - images.length}
+                      compact
+                    />
+                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <Btn primary small disabled={!pendingAdds.length || busy} onClick={commitAdds} style={{ flex: 1 }}>
+                        {busy ? "SAVING…" : `ADD ${pendingAdds.length || ""}`.trim()}
+                      </Btn>
+                      <Btn small onClick={() => { setPendingAdds([]); setAddingMore(false); }}>CANCEL</Btn>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -457,12 +503,12 @@ function VaultItemCard({ item, onDelete }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
           <span style={{ fontSize: 9, color: D.muted }}>{dateStr}</span>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            {item.type === "photo" && item.content && (
+            {item.type === "photo" && images.length > 0 && !open && (
               <button
-                onClick={() => setLightbox(true)}
+                onClick={() => setOpen(true)}
                 style={{ fontSize: 10, color: D.bl, fontWeight: 600, background:"none",
                   border:"none", cursor:"pointer", padding:"4px 8px" }}>
-                zoom ↗
+                {images.length} photo{images.length === 1 ? "" : "s"} ↗
               </button>
             )}
             {isLink && !open && (
@@ -477,17 +523,15 @@ function VaultItemCard({ item, onDelete }) {
         </div>
       </div>
 
-      {/* Lightbox */}
-      {lightbox && item.type === "photo" && item.content && (
-        <PhotoLightbox
-          src={item.content}
-          title={item.title}
-          onClose={() => setLightbox(false)}
-        />
-      )}
     </Card>
   );
 }
+
+// Single-flight guard for the legacy migration. React StrictMode invokes
+// mount effects twice in development, and a remount can do the same in
+// production; without this, each legacy photo gets encoded and written twice,
+// leaving an orphaned duplicate of its bytes in IndexedDB.
+let legacyMigration = null;
 
 // ── Vault list screen ──────────────────────────────────────────────────────
 export function VaultScreen({ onAddNew }) {
@@ -495,14 +539,51 @@ export function VaultScreen({ onAddNew }) {
   const [filter, setFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
 
+  // One-time migration of legacy single-photo items (bytes in localStorage)
+  // into the IndexedDB media store. Non-destructive: an item is only rewritten
+  // after its image is verified readable from IndexedDB.
+  useEffect(() => {
+    let alive = true;
+    if (!legacyMigration) {
+      legacyMigration = (async () => {
+        const current = J.get("vault") || [];
+        if (!current.some(hasLegacyPhoto)) return null;
+        const migrated = [];
+        let changed = false;
+        for (const it of current) {
+          const next = await migrateLegacyPhotoItem(it);
+          if (next !== it) changed = true;
+          migrated.push(next);
+        }
+        if (!changed) return null;
+        J.set("vault", migrated);
+        return migrated;
+      })();
+    }
+    legacyMigration
+      .then(migrated => { if (alive && migrated) setItems(migrated); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
   function handleSave(item) {
     setItems(J.get("vault") || []);
   }
 
-  function deleteItem(id) {
-    const updated = items.filter(i => i.id !== id);
+  function updateItem(updated) {
+    const next = (J.get("vault") || []).map(i => (i.id === updated.id ? updated : i));
+    J.set("vault", next);
+    setItems(next);
+  }
+
+  async function deleteItem(id) {
+    const target = (J.get("vault") || []).find(i => i.id === id);
+    const updated = (J.get("vault") || []).filter(i => i.id !== id);
     J.set("vault", updated);
     setItems(updated);
+    // Clean up orphaned image blobs so the media store doesn't grow forever.
+    const ids = imageIdsOf(target);
+    if (ids.length) await deleteImages(ids);
   }
 
   const filtered = filter === "all" ? items : items.filter(i => i.category === filter);
@@ -554,7 +635,7 @@ export function VaultScreen({ onAddNew }) {
           </div>
         ) : (
           filtered.slice().reverse().map(item => (
-            <VaultItemCard key={item.id} item={item} onDelete={deleteItem} />
+            <VaultItemCard key={item.id} item={item} onDelete={deleteItem} onUpdate={updateItem} />
           ))
         )}
       </div>

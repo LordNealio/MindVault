@@ -17,6 +17,8 @@ import { trackEvent } from "./lib/metrics.js";
 import { MetricsScreen } from "./features/MetricsScreen.jsx";
 import { HabitsListScreen } from "./features/habits/HabitsListScreen.jsx";
 import { PublishScreen } from "./features/publish/PublishScreen.jsx";
+import { ProgramsScreen, ProgramHeader, PROGRAM_TABS } from "./features/programs/ProgramsScreen.jsx";
+import { getAllImages, importImages } from "./lib/vaultMedia.js";
 
 // ── FONTS ─────────────────────────────────────────────────
 (() => {
@@ -268,9 +270,13 @@ const doExport = async entries => {
       try { ttData[key.slice(3)] = JSON.parse(localStorage.getItem(key)); } catch {}
     }
   }
+  // Vault image bytes live in IndexedDB, not localStorage — they must ride
+  // along or backups would restore vault items with missing photos.
+  let vaultMedia = [];
+  try { vaultMedia = await getAllImages(); } catch {}
   const payload = {
     version:SCHEMA_VER, exportedAt:new Date().toISOString(), appName:"MindVault AI",
-    payload:{ entryCount:entries.length, entries, vault:vaultData, throneTalk:ttData },
+    payload:{ entryCount:entries.length, entries, vault:vaultData, vaultMedia, throneTalk:ttData },
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type:"application/json" });
   const a = document.createElement("a");
@@ -303,6 +309,9 @@ const doImport = (file, mode) => new Promise((res, rej) => {
       }
       for (const entry of incoming) await idb.set(S.entries, entry);
       if (parsed.payload.vault) LS.set("j_vault", parsed.payload.vault);
+      if (Array.isArray(parsed.payload.vaultMedia)) {
+        try { await importImages(parsed.payload.vaultMedia); } catch {}
+      }
       if (parsed.payload.throneTalk) {
         for (const [k, v] of Object.entries(parsed.payload.throneTalk)) {
           try { localStorage.setItem("tt_" + k, JSON.stringify(v)); } catch {}
@@ -2786,6 +2795,9 @@ export default function App() {
         jarvis: "jarvis",
         context: "vault",
         games: "games",
+        habits: "habits",
+        publish: "publish",
+        programs: "programs",
         settings: "settings"
       };
       if (featureMap[tabId]) {
@@ -2926,9 +2938,15 @@ export default function App() {
         )}
 
         {tab==="vault"&&<VaultScreen entries={entries}/>}
+        {tab==="context"&&<JarvisVault/>}
+
+        {/* ── Programs hub + its five modules ── */}
+        {tab==="programs"&&<ProgramsScreen onOpen={handleTabChange}/>}
+        {PROGRAM_TABS.includes(tab)&&tab!=="programs"&&(
+          <ProgramHeader programId={tab} onBack={()=>setTab("programs")}/>
+        )}
         {tab==="throne"&&<ThroneTalk/>}
         {tab==="jarvis"&&<Jarvis token={accessToken}/>}
-        {tab==="context"&&<JarvisVault/>}
         {tab==="habits"&&<HabitsListScreen/>}
         {tab==="publish"&&<PublishScreen entries={entries} accessToken={accessToken}/>}
         {tab==="games"&&<MindGamesWorkspace/>}
@@ -2960,18 +2978,18 @@ export default function App() {
         borderTop:`1px solid ${D.border}`,display:"flex",
         height:"calc(72px + env(safe-area-inset-bottom))",
         paddingBottom:"env(safe-area-inset-bottom)",zIndex:200}}>
-        {[{id:"home",l:"HOME",icon:"⌂"},{id:"throne",l:"THRONE",icon:"🚽"},
-          {id:"jarvis",l:"ORPHEUS",icon:"⚡"},{id:"context",l:"VAULT",icon:"◧"},
-          {id:"habits",l:"HABITS",icon:"✓"},{id:"publish",l:"PUBLISH",icon:"📣"},
-          {id:"games",l:"GAMES",icon:"🧠"},
+        {[{id:"home",l:"HOME",icon:"⌂"},
+          {id:"context",l:"VAULT",icon:"◧"},
+          {id:"programs",l:"PROGRAMS",icon:"⊞"},
           {id:"settings",l:"MORE",icon:"☰"}].map((t)=>{
-          const active=t.id===tab;
+          // "Programs" stays lit while any program module is open.
+          const active = t.id==="programs" ? PROGRAM_TABS.includes(tab) : t.id===tab;
           return(
-            <button key={t.id} onClick={()=>handleTabChange(t.id)}
+            <button key={t.id} onClick={()=>handleTabChange(t.id)} aria-label={t.l}
               style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",
-                justifyContent:"center",gap:2,paddingBottom:8,paddingTop:8}}>
-              <span style={{fontSize:20,lineHeight:1,opacity:active?1:.28,transition:"opacity .2s"}}>{t.icon}</span>
-              <span style={{fontFamily:"'Unbounded',monospace",fontSize:6,letterSpacing:".08em",fontWeight:700,
+                justifyContent:"center",gap:3,paddingBottom:8,paddingTop:8}}>
+              <span style={{fontSize:22,lineHeight:1,opacity:active?1:.28,transition:"opacity .2s"}}>{t.icon}</span>
+              <span style={{fontFamily:"'Unbounded',monospace",fontSize:9,letterSpacing:".06em",fontWeight:700,
                 color:active?D.bk:D.muted,transition:"color .2s"}}>{t.l}</span>
             </button>
           );

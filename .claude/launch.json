@@ -49,11 +49,39 @@
       "cwd": "mirror"
     },
     {
+      "name": "emanual",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["expo", "start", "--web", "--port", "8090"],
+      "port": 8090,
+      "cwd": "emanual"
+    },
+    {
       "name": "seven-temples",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--port", "3007"],
       "port": 3007,
       "cwd": "seven-temples"
+    },
+    {
+      "name": "portfolio",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview", "--", "--port", "4137", "--strictPort"],
+      "port": 4137,
+      "cwd": "portfolio"
+    },
+    {
+      "name": "rocket-to-pluto",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5210", "--strictPort"],
+      "port": 5210,
+      "cwd": "rocket-to-pluto"
+    },
+    {
+      "name": "evidence-engine",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "3010"],
+      "port": 3010,
+      "cwd": "evidence-engine"
     }
   ]
 }
