@@ -9,7 +9,7 @@ const D = {
 
 // Tab ids owned by the Programs section. Used by App.jsx to keep the
 // "Programs" nav item lit while any program is open.
-export const PROGRAM_TABS = ["programs", "throne", "jarvis", "habits", "publish", "games"];
+export const PROGRAM_TABS = ["programs", "throne", "jarvis", "habits", "balance", "publish", "games"];
 
 export const PROGRAMS = [
   {
@@ -34,11 +34,18 @@ export const PROGRAMS = [
     accent: D.gr,
   },
   {
+    id: "balance",
+    icon: "⚖️",
+    label: "Personal Balance Sheet",
+    desc: "Take inventory of what is strong, what is draining you, and what needs your attention next.",
+    accent: D.bl,
+  },
+  {
     id: "publish",
     icon: "📣",
     label: "Publish",
     desc: "Turn a private idea into ready-to-post content.",
-    accent: D.bl,
+    accent: "#8B5E3C",
   },
   {
     id: "games",

@@ -17,6 +17,7 @@ import { trackEvent } from "./lib/metrics.js";
 import { MetricsScreen } from "./features/MetricsScreen.jsx";
 import { HabitsListScreen } from "./features/habits/HabitsListScreen.jsx";
 import { PublishScreen } from "./features/publish/PublishScreen.jsx";
+import { BalanceSheetScreen } from "./features/balance/BalanceSheetScreen.jsx";
 import { ProgramsScreen, ProgramHeader, PROGRAM_TABS } from "./features/programs/ProgramsScreen.jsx";
 import { getAllImages, importImages } from "./lib/vaultMedia.js";
 
@@ -2796,6 +2797,7 @@ export default function App() {
         context: "vault",
         games: "games",
         habits: "habits",
+        balance: "balance_sheet",
         publish: "publish",
         programs: "programs",
         settings: "settings"
@@ -2948,6 +2950,7 @@ export default function App() {
         {tab==="throne"&&<ThroneTalk/>}
         {tab==="jarvis"&&<Jarvis token={accessToken}/>}
         {tab==="habits"&&<HabitsListScreen/>}
+        {tab==="balance"&&<BalanceSheetScreen accessToken={accessToken}/>}
         {tab==="publish"&&<PublishScreen entries={entries} accessToken={accessToken}/>}
         {tab==="games"&&<MindGamesWorkspace/>}
 
