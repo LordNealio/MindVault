@@ -15,7 +15,7 @@ const catOptions = (cats) => cats.map(c => ({ value: c.id, label: c.label }));
 export function AssetsSection({ sheet, patch }) {
   return (
     <SectionShell
-      title="Assets Inventory" accent={C.green}
+      title="Assets Inventory" accent={C.green} kicker="Section 01 · What is working"
       intro="Assets are the people, abilities, experiences, resources, values, and forms of resilience already working for you."
     >
       <Disclosure summary="Examples by category">
@@ -58,7 +58,7 @@ export function AssetsSection({ sheet, patch }) {
 export function LiabilitiesSection({ sheet, patch }) {
   return (
     <SectionShell
-      title="Liabilities Inventory" accent={C.red}
+      title="Liabilities Inventory" accent={C.red} kicker="Section 02 · What is draining"
       intro="A liability is not a character flaw. It is a condition, obligation, habit, fear, or unresolved problem draining capacity or creating risk."
     >
       <Disclosure summary="Examples by category">
@@ -105,7 +105,7 @@ export function CapacitySection({ sheet, patch }) {
   });
   return (
     <SectionShell
-      title="Capacity and Liquidity Check" accent={C.blue}
+      title="Capacity and Liquidity Check" accent={C.blue} kicker="Section 03 · What you can reach"
       intro="Potential is not the same as the time, energy, attention, or emotional capacity you can reliably access today."
     >
       <Callout accent={C.blue}>
@@ -140,7 +140,7 @@ export function EquitySection({ sheet, patch }) {
   const generated = equityStatement({ ...sheet, equity: { ...e, statementOverride: "" } });
   return (
     <SectionShell
-      title="Personal Equity" accent={C.navy}
+      title="Personal Equity" accent={C.navy} kicker="Section 04 · What remains"
       intro="Personal equity is the durable value that remains after current liabilities and limitations are honestly acknowledged."
     >
       <TextArea label="What are my core values?" value={e.values} onChange={(v) => set("values", v)} />
@@ -191,7 +191,7 @@ export function CommandSection({ sheet, patch }) {
 
   return (
     <SectionShell
-      title="Personal Command Center" accent={C.amber}
+      title="Personal Command Center" accent={C.amber} kicker="Section 05 · What needs a move"
       intro="One list of everything that needs a decision or a move, with the next physical action written down."
     >
       <Callout accent={C.amber} title="The rule">
@@ -255,7 +255,7 @@ export function CommandSection({ sheet, patch }) {
 export function RisksSection({ sheet, patch }) {
   return (
     <SectionShell
-      title="Risks and Early Warning Signs" accent={C.red}
+      title="Risks and Early Warning Signs" accent={C.red} kicker="Section 06 · What to watch"
       intro="A contingent liability is a manageable problem that may become serious if warning signs appear or action is delayed."
     >
       <Repeater
@@ -326,7 +326,7 @@ export function PlanSection({ sheet, patch }) {
 
   return (
     <SectionShell
-      title="The 30 · 90 · 365 Plan" accent={C.blue}
+      title="The 30 · 90 · 365 Plan" accent={C.blue} kicker="Section 07 · Where you are going"
       intro="Three horizons, no more than three priorities each. The limit is the point — completion before expansion."
     >
       {HORIZONS.map(h => {
@@ -379,7 +379,7 @@ export function WeeklySection({ sheet, patch }) {
 
   return (
     <SectionShell
-      title="Weekly Close" accent={C.green}
+      title="Weekly Close" accent={C.green} kicker="Section 08 · The repeating review"
       intro="A short, repeatable review. Run it once a week — the trend matters more than any single week."
     >
       {!draft && (
@@ -441,7 +441,7 @@ export function FocusSection({ sheet, patch }) {
   const counts = FOCUS_DECISIONS.reduce((acc, d) => ({ ...acc, [d]: sheet.focus.filter(f => f.decision === d).length }), {});
   return (
     <SectionShell
-      title="Focus and Commitment Triage" accent={C.amber}
+      title="Focus and Commitment Triage" accent={C.amber} kicker="Section 09 · What gets your attention"
       intro="Every project, obligation, and idea you are carrying — and an honest decision about each one."
     >
       <Callout accent={C.amber} title="The capacity rule">
