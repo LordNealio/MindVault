@@ -15,7 +15,7 @@ import {
   D, TextField, TextArea, SelectField, Scale, Disclosure, Button,
   Card, Callout, Repeater, SectionShell, Kicker,
 } from "./BalanceUI.jsx";
-import { CrisisHelpButton } from "../safety/CrisisHelp.jsx";
+
 
 const catOptions = (cats) => cats.map(c => ({ value: c.id, label: c.label }));
 
@@ -342,9 +342,8 @@ export function RisksSection({ sheet, patch }) {
           hint="What symptoms, behaviours, missed responsibilities, or safety concerns mean I should contact a trusted person, clinician, crisis service, or emergency support?"
           value={sheet.escalationPlan} onChange={(v) => patch({ escalationPlan: v })} rows={5}
         />
-        <div style={{ marginTop: 6 }}>
-          <CrisisHelpButton />
-        </div>
+        {/* No help button here: the module shell renders one on every screen,
+            and two on the same page is noise. */}
       </Card>
     </SectionShell>
   );

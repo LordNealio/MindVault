@@ -189,19 +189,40 @@ export const newWeekly = () => ({
 });
 
 // ── Storage adapter ───────────────────────────────────────────
+// One cached connection per page. Opening a fresh connection on every call
+// leaks handles and, more practically, leaves deleteDatabase() blocked forever
+// because there is always an open connection holding the database.
+let dbPromise = null;
+
 function openDB() {
-  return new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
     if (typeof indexedDB === "undefined") { reject(new Error("IndexedDB unavailable")); return; }
     let req;
     try { req = indexedDB.open(DB_NAME, 1); }
     catch (err) { reject(err); return; }
     req.onerror = () => reject(req.error || new Error("IndexedDB open failed"));
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      const db = req.result;
+      // If something else requests a version change or deletion, step aside.
+      db.onversionchange = () => { db.close(); dbPromise = null; };
+      resolve(db);
+    };
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: "id" });
     };
   });
+  // A failed open must not be cached, or every later call inherits the failure.
+  dbPromise.catch(() => { dbPromise = null; });
+  return dbPromise;
+}
+
+/** Releases the cached connection. Exposed for tests and teardown. */
+export function closeDB() {
+  const p = dbPromise;
+  dbPromise = null;
+  if (p) p.then(db => { try { db.close(); } catch { /* already closed */ } }).catch(() => {});
 }
 
 const lsRead = () => {

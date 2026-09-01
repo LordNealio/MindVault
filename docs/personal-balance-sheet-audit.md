@@ -7,6 +7,37 @@
 
 ---
 
+## Remediation status — updated after implementation
+
+The full prioritized plan was implemented (commits `84ac119` and following) under
+**Open Decision #1, option (b)**: the product's financial identity was kept and the specified
+measurement design was retrofitted inside it. The audit body below is preserved **as written at
+audit time** — it is the record of what was found, not a description of the current code.
+
+| Item | Status now | Evidence |
+|---|---|---|
+| **P0-1** silent data loss | **Closed** | `saveSheet` rejects when both stores fail; shell shows a `role="alert"` banner with a download escape hatch. 4 unit tests + 1 component test. |
+| **P0-2** monitoring statement | **Closed** | Orientation states it; asserted in `balanceSheet.safety.test.jsx`. |
+| **P0-3** persistent help | **Closed** | `src/features/safety/CrisisHelp.jsx` rendered by the shell; a test walks all 10 steps and fails if it is absent — or duplicated. |
+| **P0-4** explicit consent | **Closed** | Affirmative control gates entry; consent recorded with statement + version. |
+| **P0-5** AI governance | **Mitigated in code, still open as a decision** | `AI_GOVERNANCE_APPROVED = false` disables external processing entirely. Authorization remains yours. |
+| **P1** measurement foundation (D1/D3/D4/D5/D7) | **Closed** | `balanceAnswers.js`: versioned answers, anchor sets, `0` as a real value, distinct missing states. |
+| **P1** interference + influence, priority step, action plan, L1–L7 | **Closed** | Verified firing in-browser and in unit tests. |
+| **P1** weekly composite score | **Closed** | Replaced with per-item within-person series that refuse to mix anchor sets. |
+| **P1/T1/T2/T3** tests | **Closed** | 75 tests across 6 files: logic, storage failure, migration, journeys, safety, and axe (zero violations on every screen). |
+| **P2** reduced motion, focus-within, prototype framing, export note, response classification | **Closed** | — |
+| **F26** baseline length (10–15 min target) | **Open** | Still 10 sections / 20–30 min. Shortening means cutting content — your call. |
+| **S1** crisis resource ownership | **Open** | Component exists with ownership documented in-file; the list is not localised. |
+| **T4** visual regression | **Deferred** | Low value without a baseline pipeline. |
+
+Two issues were found *during* remediation and fixed:
+- the storage layer never closed IndexedDB connections, which deadlocked `deleteDatabase` (and would
+  have blocked any future migration needing a version change);
+- the Risks section and Results each rendered their own help button on top of the shell's, so three
+  screens showed two. Help is now rendered in exactly one place.
+
+---
+
 ## 0. Executive verdict
 
 **Not ready for pilot testing.** The module is a well-built, privacy-respecting, locally-persisted

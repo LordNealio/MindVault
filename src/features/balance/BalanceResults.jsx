@@ -7,7 +7,7 @@ import { decisionSupport } from "../../lib/balanceDecisionSupport.js";
 import { ANCHOR_SETS, valueOf } from "../../lib/balanceAnswers.js";
 import { callProxy } from "../../lib/ai.js";
 import { D, Button, Card, Callout, TextArea, SectionShell, Kicker } from "./BalanceUI.jsx";
-import { CrisisHelpButton } from "../safety/CrisisHelp.jsx";
+
 
 const catLabel = (id) => ASSET_CATEGORIES.find(c => c.id === id)?.label || id;
 const accessLabel = (a) => {
@@ -319,8 +319,9 @@ export function BalanceResults({ sheet, patch, accessToken, onEditSection, onExp
         </p>
       </div>
 
-      <div style={{ marginTop: 22, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <CrisisHelpButton />
+      {/* Help lives in the module shell so it is present on every screen; a
+          second copy here would just be duplication. */}
+      <div style={{ marginTop: 22 }}>
         <span style={{ fontSize: 10.5, color: D.faint, lineHeight: 1.6 }}>{PROTOTYPE_NOTE}</span>
       </div>
     </SectionShell>
