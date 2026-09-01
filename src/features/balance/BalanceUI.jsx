@@ -1,5 +1,9 @@
 import { useState, useId } from "react";
 import { C } from "../../lib/balanceSheet.js";
+import {
+  ANCHOR_SETS, QUESTIONS, answered, preferNot, unanswered,
+  isAnswered, isDeclined,
+} from "../../lib/balanceAnswers.js";
 
 // Shared, accessible primitives for the Personal Balance Sheet.
 //
@@ -23,6 +27,34 @@ export const HEAD = "'Unbounded', monospace";
 const SHADOW = "0 2px 12px rgba(0,0,0,0.06)";
 
 export const focusRing = { outline: "none", boxShadow: "0 0 0 3px rgba(29,53,87,0.32)" };
+
+/**
+ * Rendered once by the module shell.
+ * - .pbs-step:focus-within — the scale's real <input> is visually hidden, so
+ *   without this a keyboard user gets no focus indicator at all (audit A2).
+ * - prefers-reduced-motion — all module motion is opt-out (audit A8).
+ * - .pbs-sr — screen-reader-only text.
+ */
+export function BalanceStyles() {
+  return (
+    <style>{`
+      .pbs-step { transition: background .15s, color .15s; }
+      .pbs-step:focus-within {
+        outline: 3px solid #1D3557;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 4px rgba(29,53,87,0.22);
+      }
+      .pbs-sr {
+        position: absolute; width: 1px; height: 1px;
+        overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .pbs-step, .pbs-anim { transition: none !important; animation: none !important; }
+        html { scroll-behavior: auto !important; }
+      }
+    `}</style>
+  );
+}
 
 /** The app's small all-caps marker. */
 export function Kicker({ children, color = C.navy, style = {} }) {
@@ -111,54 +143,99 @@ export function SelectField({ label, hint, value, onChange, options, placeholder
 }
 
 /**
- * Discrete 1..max scale as a radio group. Selected state is shown by colour,
- * a filled dot, AND the reading beneath — never colour alone.
+ * Versioned Answer scale. Renders the anchor set declared by `questionId`, so
+ * a scale that includes 0 ("Not able", "Not available", "Not at all") can
+ * express it as a real answer rather than confusing it with no answer.
+ *
+ * Selected state is shown by colour, the number, AND the reading beneath —
+ * never colour alone. "Prefer not to answer" is recorded distinctly.
  */
-export function Scale({ label, hint, value, onChange, max = 5, accent = C.navy, lowLabel, highLabel }) {
+export function Scale({ label, hint, questionId, value, onChange, accent = C.navy, allowDecline = true }) {
   const name = useId();
+  const q = QUESTIONS[questionId];
+  const set = ANCHOR_SETS[q?.anchors] || { min: 1, max: 5, labels: [] };
+  const { min, max, labels, timeframe } = set;
+  const steps = [];
+  for (let n = min; n <= max; n++) steps.push(n);
+  const wide = steps.length > 6;   // 0–10 scales wrap instead of stretching
+
+  const current = isAnswered(value) ? value.value : null;
+  const declined = isDeclined(value);
+  const currentLabel = current != null ? labels[current] : null;
+
   return (
     <fieldset style={{ border: "none", padding: 0, margin: "0 0 18px" }}>
       <legend style={{ padding: 0, marginBottom: 7 }}>
         <span style={{ fontSize: 12.5, fontWeight: 600, color: D.bk }}>{label}</span>
-        {hint && <span style={{ display: "block", fontSize: 11, color: D.muted, fontWeight: 400, marginTop: 3, lineHeight: 1.55 }}>{hint}</span>}
+        {(hint || timeframe) && (
+          <span style={{ display: "block", fontSize: 11, color: D.muted, fontWeight: 400, marginTop: 3, lineHeight: 1.55 }}>
+            {hint}{hint && timeframe ? " · " : ""}{timeframe ? `Thinking about the ${timeframe}.` : ""}
+          </span>
+        )}
       </legend>
-      <div style={{ display: "flex", gap: 7 }}>
-        {Array.from({ length: max }, (_, i) => i + 1).map(n => {
-          const on = Number(value) === n;
+
+      <div style={{ display: "flex", gap: 6, flexWrap: wide ? "wrap" : "nowrap" }}>
+        {steps.map(n => {
+          const on = current === n;
           return (
             <label
               key={n}
+              className="pbs-step"
               style={{
-                flex: 1, minHeight: 46, display: "flex", alignItems: "center", justifyContent: "center",
+                flex: wide ? "0 0 auto" : 1,
+                minWidth: wide ? 40 : undefined,
+                minHeight: 46, display: "flex", alignItems: "center", justifyContent: "center",
                 borderRadius: 12, cursor: "pointer", position: "relative",
                 fontFamily: HEAD, fontSize: 12, fontWeight: 700,
                 background: on ? accent : D.bg,
                 color: on ? "#FFFFFF" : D.muted,
                 border: `1.5px solid ${on ? accent : D.border}`,
-                transition: "background .15s, color .15s",
               }}
             >
               <input
                 type="radio" name={name} value={n} checked={on}
-                onChange={() => onChange(n)}
+                onChange={() => onChange(answered(n, questionId))}
                 style={{ position: "absolute", opacity: 0, width: 1, height: 1 }}
               />
               <span aria-hidden="true">{n}</span>
-              <span style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
-                {n} of {max}
+              <span className="pbs-sr">
+                {n}{labels[n] ? ` — ${labels[n]}` : ""} (of {max})
               </span>
             </label>
           );
         })}
       </div>
-      {(lowLabel || highLabel) && (
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 10, color: D.faint }}>
-          <span>{lowLabel}</span><span>{highLabel}</span>
+
+      {(labels[min] || labels[max]) && (
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 10, color: D.faint, gap: 12 }}>
+          <span>{min} · {labels[min]}</span><span style={{ textAlign: "right" }}>{max} · {labels[max]}</span>
         </div>
       )}
-      <div aria-live="polite" style={{ fontSize: 11, color: value ? D.muted : D.faint, marginTop: 5 }}>
-        {value ? `Selected: ${value} of ${max}` : "Not answered — you can skip this."}
+
+      <div aria-live="polite" style={{ fontSize: 11, color: current != null || declined ? D.muted : D.faint, marginTop: 6 }}>
+        {declined
+          ? "Prefer not to answer — recorded."
+          : current != null
+            ? `Selected: ${current}${currentLabel ? ` — ${currentLabel}` : ""}`
+            : "Not answered. You can leave this."}
       </div>
+
+      {allowDecline && (
+        <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => onChange(declined ? unanswered(questionId) : preferNot(questionId))}
+            aria-pressed={declined}
+            style={{
+              background: declined ? D.bk : "transparent", color: declined ? "#fff" : D.muted,
+              border: `1px solid ${declined ? D.bk : D.border}`, borderRadius: 20,
+              padding: "6px 12px", fontSize: 10.5, cursor: "pointer", minHeight: 34,
+            }}
+          >
+            {declined ? "✓ Prefer not to answer" : "Prefer not to answer"}
+          </button>
+        </div>
+      )}
     </fieldset>
   );
 }

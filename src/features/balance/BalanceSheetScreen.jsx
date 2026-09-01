@@ -2,20 +2,22 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   C, SECTIONS, emptySheet, loadSheet, saveSheet, deleteSheet,
   storageLocation, sectionProgress,
+  CONSENT_STATEMENT, CONSENT_VERSION, MONITORING_STATEMENT, PROTOTYPE_NOTE,
 } from "../../lib/balanceSheet.js";
 import { trackEvent } from "../../lib/metrics.js";
-import { D, HEAD, Button, Card, Callout, TextField, Kicker } from "./BalanceUI.jsx";
+import { D, HEAD, Button, Card, Callout, TextField, TextArea, Kicker, BalanceStyles } from "./BalanceUI.jsx";
 import { PrintableWorkbook } from "./PrintableWorkbook.jsx";
 import {
   AssetsSection, LiabilitiesSection, CapacitySection, EquitySection,
-  CommandSection, RisksSection, PlanSection, WeeklySection, FocusSection,
+  CommandSection, RisksSection, PrioritySection, PlanSection, WeeklySection, FocusSection,
 } from "./BalanceSections.jsx";
 import { BalanceResults } from "./BalanceResults.jsx";
+import { CrisisHelpButton } from "../safety/CrisisHelp.jsx";
 
 const SECTION_COMPONENTS = {
   assets: AssetsSection, liabilities: LiabilitiesSection, capacity: CapacitySection,
   equity: EquitySection, command: CommandSection, risks: RisksSection,
-  plan: PlanSection, weekly: WeeklySection, focus: FocusSection,
+  priority: PrioritySection, plan: PlanSection, weekly: WeeklySection, focus: FocusSection,
 };
 
 // view: 'loading' | 'landing' | 'intro' | 'section' | 'results'
@@ -24,8 +26,12 @@ export function BalanceSheetScreen({ accessToken = "" }) {
   const [sheet, setSheet] = useState(null);
   const [sectionIdx, setSectionIdx] = useState(0);
   const [savedAt, setSavedAt] = useState(null);
+  const [saveError, setSaveError] = useState(null);   // audit P0-1
+  const [degraded, setDegraded] = useState(false);
   const [where, setWhere] = useState("this device");
   const [nameDraft, setNameDraft] = useState("");
+  const [usefulDraft, setUsefulDraft] = useState("");
+  const [consentChecked, setConsentChecked] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
   const saveTimer = useRef(null);
   const liveRef = useRef(null);
@@ -40,22 +46,27 @@ export function BalanceSheetScreen({ accessToken = "" }) {
         setSheet(existing);
         const idx = SECTIONS.findIndex(s => s.id === existing.currentSection);
         setSectionIdx(idx >= 0 ? idx : 0);
-        setView("landing");
-      } else {
-        setView("landing");
       }
+      setView("landing");
     })();
     trackEvent("feature_use", "balance_sheet").catch(() => {});
     return () => { alive = false; };
   }, []);
 
-  // Debounced autosave. Only ever writes locally — no content in analytics.
+  /** Debounced autosave. Never reports success unless a store accepted the write. */
   const persist = useCallback((next) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
-      const stored = await saveSheet(next);
-      setSavedAt(new Date());
-      setSheet(s => (s ? { ...s, updatedAt: stored.updatedAt } : s));
+      try {
+        const res = await saveSheet(next);
+        setSavedAt(new Date());
+        setSaveError(null);
+        setDegraded(!!res.degraded);
+        setSheet(s => (s ? { ...s, updatedAt: res.sheet.updatedAt } : s));
+      } catch (err) {
+        setSaveError(err.message || "Could not save.");
+        setSavedAt(null);
+      }
     }, 600);
   }, []);
 
@@ -68,10 +79,17 @@ export function BalanceSheetScreen({ accessToken = "" }) {
   }, [persist]);
 
   const startNew = async () => {
-    const fresh = { ...emptySheet(), ownerLabel: nameDraft.trim() || null, completionState: "in_progress" };
+    const fresh = {
+      ...emptySheet(),
+      ownerLabel: nameDraft.trim() || null,
+      usefulToday: usefulDraft.trim(),
+      consent: { granted: true, grantedAt: new Date().toISOString(), version: CONSENT_VERSION, statement: CONSENT_STATEMENT },
+      completionState: "in_progress",
+    };
     setSheet(fresh);
     setSectionIdx(0);
-    await saveSheet(fresh);
+    try { await saveSheet(fresh); setSavedAt(new Date()); setSaveError(null); }
+    catch (err) { setSaveError(err.message); }
     setView("section");
   };
 
@@ -93,7 +111,10 @@ export function BalanceSheetScreen({ accessToken = "" }) {
   };
 
   const handleExport = () => {
-    const blob = new Blob([JSON.stringify({ app: "MindVault", kind: "personal-balance-sheet", exportedAt: new Date().toISOString(), sheet }, null, 2)], { type: "application/json" });
+    const blob = new Blob(
+      [JSON.stringify({ app: "MindVault", kind: "personal-balance-sheet", exportedAt: new Date().toISOString(), sheet }, null, 2)],
+      { type: "application/json" }
+    );
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `personal-balance-sheet-${new Date().toISOString().slice(0, 10)}.json`;
@@ -101,24 +122,58 @@ export function BalanceSheetScreen({ accessToken = "" }) {
     URL.revokeObjectURL(a.href);
   };
 
-  const handlePrint = () => setPrintOpen(true);
-
   const handleDelete = async () => {
     await deleteSheet();
-    setSheet(null);
-    setSectionIdx(0);
+    setSheet(null); setSectionIdx(0); setSavedAt(null); setSaveError(null);
     setView("landing");
   };
 
-  // ── Loading ──
   if (view === "loading") {
     return <div style={{ padding: 24, color: D.muted, fontSize: 13 }}>Loading your balance sheet…</div>;
   }
 
+  /** AUDIT P0-1: loud, persistent, and offers a way to rescue the answers. */
+  const SaveBanner = () => {
+    if (saveError) {
+      return (
+        <div role="alert" style={{
+          background: "#FFF5F5", border: `2px solid ${C.red}`, borderRadius: 14,
+          padding: 14, marginBottom: 16,
+        }}>
+          <Kicker color={C.red} style={{ marginBottom: 6 }}>Not saved</Kicker>
+          <p style={{ fontSize: 12.5, lineHeight: 1.7, color: D.bk, margin: "0 0 10px" }}>
+            Your answers could not be stored on this device, so they will be lost if you close this
+            screen. This can happen in a private window or when storage is full. Download a copy now
+            to keep what you have written.
+          </p>
+          <p style={{ fontSize: 11, color: D.muted, margin: "0 0 10px" }}>{saveError}</p>
+          <Button small variant="danger" onClick={handleExport}>Download my answers</Button>
+        </div>
+      );
+    }
+    if (degraded) {
+      return (
+        <div role="status" style={{
+          background: `${C.amber}18`, border: `1px solid ${C.amber}`, borderRadius: 14,
+          padding: 12, marginBottom: 16, fontSize: 12, color: D.bk, lineHeight: 1.65,
+        }}>
+          Saved to a backup store because the main one is unavailable. Your answers are kept, but
+          exporting a copy is a good idea.
+        </div>
+      );
+    }
+    return null;
+  };
+
   const wrap = (children) => (
-    <div style={{ padding: "22px 18px 130px", maxWidth: 560, margin: "0 auto" }}>
-      <div ref={liveRef} aria-live="polite" role="status"
-        style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }} />
+    <div style={{ padding: "18px 18px 130px", maxWidth: 560, margin: "0 auto" }}>
+      <BalanceStyles />
+      <div ref={liveRef} aria-live="polite" role="status" className="pbs-sr" />
+      {/* AUDIT S2: help is present on every screen, not buried in one step */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <CrisisHelpButton />
+      </div>
+      <SaveBanner />
       {children}
       {printOpen && (
         <PrintableWorkbook
@@ -130,7 +185,7 @@ export function BalanceSheetScreen({ accessToken = "" }) {
     </div>
   );
 
-  // ── Landing / entry point ──
+  // ── Landing ──
   if (view === "landing") {
     const started = !!sheet && sheet.completionState !== "not_started";
     const done = sheet?.completionState === "complete";
@@ -159,15 +214,10 @@ export function BalanceSheetScreen({ accessToken = "" }) {
 
         {started && (
           <Card accent={C.green}>
-            <Kicker color={C.green} style={{ marginBottom: 8 }}>
-              {done ? "Completed" : "In progress"}
-            </Kicker>
+            <Kicker color={C.green} style={{ marginBottom: 8 }}>{done ? "Completed" : "In progress"}</Kicker>
             <div style={{ display: "flex", gap: 3, marginBottom: 10 }}>
               {SECTIONS.map(s => (
-                <div key={s.id} style={{
-                  flex: 1, height: 5, borderRadius: 3,
-                  background: prog[s.id] ? s.accent : D.border,
-                }} />
+                <div key={s.id} style={{ flex: 1, height: 5, borderRadius: 3, background: prog[s.id] ? s.accent : D.border }} />
               ))}
             </div>
             <div style={{ fontSize: 11.5, color: D.muted, lineHeight: 1.65 }}>
@@ -189,23 +239,19 @@ export function BalanceSheetScreen({ accessToken = "" }) {
               </Button>
             </>
           ) : (
-            <Button accent={C.navy} full onClick={() => setView("intro")}>
-              Start My Balance Sheet
-            </Button>
+            <Button accent={C.navy} full onClick={() => setView("intro")}>Start My Balance Sheet</Button>
           )}
-          <Button variant="secondary" full onClick={() => setPrintOpen(true)}>
-            Printable Workbook
-          </Button>
+          <Button variant="secondary" full onClick={() => setPrintOpen(true)}>Printable Workbook</Button>
         </div>
 
         <div style={{ marginTop: 26 }}>
           <Kicker color={D.faint} style={{ marginBottom: 10 }}>What it covers</Kicker>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-            {SECTIONS.map((s, i) => (
+            {SECTIONS.map(s => (
               <span key={s.id} style={{
                 fontSize: 11, fontWeight: 600, padding: "7px 11px", borderRadius: 20,
-                background: D.surf, border: `1px solid ${D.border}`,
-                color: D.bk, display: "inline-flex", alignItems: "center", gap: 6,
+                background: D.surf, border: `1px solid ${D.border}`, color: D.bk,
+                display: "inline-flex", alignItems: "center", gap: 6,
               }}>
                 <span style={{ width: 6, height: 6, borderRadius: 3, background: s.accent }} />
                 {s.label}
@@ -218,19 +264,17 @@ export function BalanceSheetScreen({ accessToken = "" }) {
           Stability before scale · evidence before certainty · completion before expansion ·
           don't suffer in silence.
         </p>
+        <p style={{ fontSize: 10.5, color: D.faint, lineHeight: 1.7, marginTop: 12 }}>{PROTOTYPE_NOTE}</p>
       </>
     );
   }
 
-  // ── Intro ──
+  // ── Orientation and consent ──
   if (view === "intro") {
     return wrap(
       <>
         <Kicker color={C.navy} style={{ marginBottom: 8 }}>Before you start</Kicker>
-        <h1 style={{
-          fontFamily: HEAD, fontSize: 21, fontWeight: 900, margin: "0 0 14px",
-          lineHeight: 1.25, letterSpacing: "-.01em",
-        }}>
+        <h1 style={{ fontFamily: HEAD, fontSize: 21, fontWeight: 900, margin: "0 0 14px", lineHeight: 1.25 }}>
           How this works
         </h1>
         <p style={{ fontSize: 13.5, lineHeight: 1.85, color: D.bk, marginBottom: 20 }}>
@@ -241,10 +285,12 @@ export function BalanceSheetScreen({ accessToken = "" }) {
 
         <Card accent={C.blue}>
           {[
-            ["Time", "About 20–30 minutes. You do not have to finish in one sitting."],
-            ["Autosave", "Every answer saves by itself as you type. You can pause and return at any time."],
-            ["Privacy", `Your answers stay on ${where}. Nothing is uploaded unless you explicitly ask for AI help later, and you review the exact text first.`],
-            ["Nothing is required", "Skip any question. Sensitive fields are never forced."],
+            ["Time", "About 20–30 minutes for the full inventory. You do not have to finish in one sitting, and you can stop at any point with everything kept."],
+            ["Autosave", "Every answer saves by itself as you type. If saving ever fails you will be told, not left guessing."],
+            ["Privacy", `Your answers stay on ${where}. Nothing is uploaded anywhere.`],
+            ["Nobody is watching", MONITORING_STATEMENT],
+            ["Nothing is required", "Skip any question, or mark it “prefer not to answer”. No field is forced, and choosing not to answer is recorded as a real choice rather than a blank."],
+            ["What this is not", `${PROTOTYPE_NOTE} It cannot diagnose you, and it is not a crisis service.`],
           ].map(([t, body], i, arr) => (
             <div key={t} style={{ marginBottom: i === arr.length - 1 ? 0 : 14 }}>
               <Kicker color={C.navy} style={{ marginBottom: 4 }}>{t}</Kicker>
@@ -253,14 +299,38 @@ export function BalanceSheetScreen({ accessToken = "" }) {
           ))}
         </Card>
 
+        <TextArea
+          label="What would make this check-in useful to you today?"
+          hint="Optional. One line is enough — it helps you judge afterwards whether it delivered."
+          value={usefulDraft} onChange={setUsefulDraft} rows={2}
+        />
+
         <TextField
           label="What should this be filed under?"
           hint="A name, a nickname, your initials — or leave it blank to stay anonymous."
           value={nameDraft} onChange={setNameDraft} placeholder="Optional"
         />
 
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <Button accent={C.navy} full onClick={startNew}>Start</Button>
+        {/* AUDIT P0-4: affirmative consent, recorded with the sheet */}
+        <div style={{
+          border: `1.5px solid ${consentChecked ? C.navy : D.border}`, borderRadius: 14,
+          padding: 14, marginTop: 6, marginBottom: 16,
+          background: consentChecked ? `${C.navy}0C` : D.surf,
+        }}>
+          <label style={{ display: "flex", gap: 11, alignItems: "flex-start", cursor: "pointer" }}>
+            <input
+              type="checkbox" checked={consentChecked}
+              onChange={(e) => setConsentChecked(e.target.checked)}
+              style={{ width: 22, height: 22, marginTop: 1, flexShrink: 0, accentColor: C.navy }}
+            />
+            <span style={{ fontSize: 12.5, lineHeight: 1.7, color: D.bk }}>{CONSENT_STATEMENT}</span>
+          </label>
+        </div>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button accent={C.navy} full disabled={!consentChecked} onClick={startNew}>
+            {consentChecked ? "Start" : "Tick the box to start"}
+          </Button>
           <Button variant="ghost" onClick={() => setView("landing")}>Back</Button>
         </div>
       </>
@@ -276,7 +346,7 @@ export function BalanceSheetScreen({ accessToken = "" }) {
         <BalanceResults
           sheet={sheet} patch={patch} accessToken={accessToken}
           onEditSection={() => { setView("section"); window.scrollTo(0, 0); }}
-          onExport={handleExport} onPrint={handlePrint} onDelete={handleDelete}
+          onExport={handleExport} onPrint={() => setPrintOpen(true)} onDelete={handleDelete}
         />
       </>
     );
@@ -291,19 +361,20 @@ export function BalanceSheetScreen({ accessToken = "" }) {
 
     return wrap(
       <>
-        {/* Progress */}
         <div style={{ marginBottom: 22 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-            <Kicker color={section.accent}>
-              Step {sectionIdx + 1} of {SECTIONS.length}
-            </Kicker>
-            <span style={{ fontSize: 10, color: D.faint }}>
-              {savedAt ? `Saved ${savedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "Autosaves as you type"}
+            <Kicker color={section.accent}>Step {sectionIdx + 1} of {SECTIONS.length}</Kicker>
+            <span style={{ fontSize: 10, color: saveError ? C.red : D.faint }}>
+              {saveError
+                ? "Not saved"
+                : savedAt
+                  ? `Saved ${savedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
+                  : "Autosaves as you type"}
             </span>
           </div>
           <div style={{ display: "flex", gap: 3 }} role="presentation">
             {SECTIONS.map((s, i) => (
-              <div key={s.id} title={s.label} style={{
+              <div key={s.id} title={s.label} className="pbs-anim" style={{
                 flex: 1, height: 5, borderRadius: 3,
                 background: i === sectionIdx ? s.accent : prog[s.id] ? `${s.accent}77` : D.border,
                 transition: "background .2s",
@@ -314,7 +385,6 @@ export function BalanceSheetScreen({ accessToken = "" }) {
 
         <Component sheet={sheet} patch={patch} />
 
-        {/* Navigation */}
         <div style={{ display: "flex", gap: 8, marginTop: 28, flexWrap: "wrap" }}>
           <Button variant="secondary" disabled={sectionIdx === 0} onClick={() => goToSection(sectionIdx - 1)}>
             ← Previous
@@ -331,14 +401,12 @@ export function BalanceSheetScreen({ accessToken = "" }) {
           <Button variant="ghost" small onClick={() => { setView("landing"); window.scrollTo(0, 0); }}>
             Save and exit
           </Button>
-          {!isLast && (
-            <Button variant="ghost" small onClick={finish}>Skip to summary</Button>
-          )}
+          {!isLast && <Button variant="ghost" small onClick={finish}>Skip to summary</Button>}
         </div>
 
-        <p style={{ fontSize: 10, color: D.faint, marginTop: 16, lineHeight: 1.6 }}>
-          Nothing here is required. Leave anything blank and keep moving — an honest partial answer is
-          worth more than a complete invented one.
+        <p style={{ fontSize: 10.5, color: D.faint, marginTop: 16, lineHeight: 1.7 }}>
+          Nothing here is required. Leave anything blank, or mark it “prefer not to answer” — an honest
+          partial answer is worth more than a complete invented one.
         </p>
       </>
     );

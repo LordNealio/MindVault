@@ -1,6 +1,16 @@
 import { useEffect } from "react";
-import { equityStatement, deriveSummary, CAPACITY_AREAS } from "../../lib/balanceSheet.js";
+import { equityStatement, deriveSummary, CAPACITY_AREAS, WEEKLY_AREAS } from "../../lib/balanceSheet.js";
+import { valueOf, ANCHOR_SETS } from "../../lib/balanceAnswers.js";
 import { D, HEAD, Button } from "./BalanceUI.jsx";
+
+/** Renders an Answer as "3 — Mostly able", or a blank rule when unanswered. */
+const rate = (answer, anchorId) => {
+  const v = valueOf(answer);
+  const set = ANCHOR_SETS[anchorId];
+  if (v == null) return `___ / ${set?.max ?? 4}`;
+  const label = set?.labels?.[v];
+  return label ? `${v} — ${label}` : String(v);
+};
 
 // The printable workbook renders as a full-screen overlay INSIDE the app.
 //
@@ -23,25 +33,25 @@ export function buildWorkbookHTML(sheet, { filled }) {
 <p class="sub">A life inventory and action toolkit${s.ownerLabel ? ` — ${esc(s.ownerLabel)}` : ""}</p>
 <p class="lede">Struggling does not erase your value. But identifying your value is not enough if you continue avoiding serious liabilities.</p>
 
-<h2>1 · Assets</h2>
-<p class="note">The people, abilities, experiences, resources, values, and resilience already working for you.</p>
+<h2>1 · Resources</h2>
+<p class="note">The people, abilities, experiences, resources, values, and resilience already working for you. Availability is rated for the past 7 days: 0 Not available · 1 Rarely · 2 Sometimes · 3 Usually · 4 Reliably.</p>
 ${s.assets.length
-    ? s.assets.map(a => `<div class="item">${line("What:", a.description)}<small>Strength ${a.strength || "—"}/5 · Access now ${a.access || "—"}/5</small>${a.note ? `<p><small>${esc(a.note)}</small></p>` : ""}</div>`).join("")
-    : blanks(5, () => `<div class="item">${line("What:", "")}<small>Strength ___/5 · Access now ___/5</small></div>`)}
-${line("Asset I must protect first:", s.protectFirst)}
+    ? s.assets.map(a => `<div class="item">${line("What:", a.description)}<small>Availability: ${esc(rate(a.access, "access-0to4-v1"))}</small>${a.easierToUse ? `<p><small>Would help: ${esc(a.easierToUse)}</small></p>` : ""}${a.note ? `<p><small>${esc(a.note)}</small></p>` : ""}</div>`).join("")
+    : blanks(5, () => `<div class="item">${line("What:", "")}<small>Availability past 7 days: ___ / 4 &nbsp; What would make it easier to use: <span class="blank">&nbsp;</span></small></div>`)}
+${line("Resource I must protect first:", s.protectFirst)}
 
-<h2>2 · Liabilities</h2>
-<p class="note">Not a character flaw — a condition, obligation, habit, fear, or unresolved problem draining capacity.</p>
+<h2>2 · Drains and Pressures</h2>
+<p class="note">Three separate questions. Interference: 0 Not at all → 4 Extremely. Urgency: 0 No action now → 3 Today. Influence: 0 None right now → 3 A great deal.</p>
 ${s.liabilities.length
-    ? s.liabilities.map(l => `<div class="item">${line("What:", l.description)}${line("First next action:", l.firstAction)}<small>Urgency ${l.urgency || "—"}/3 · Deadline ${esc(l.deadline || "—")} · Helper ${esc(l.helper || "—")} · ${esc(l.status || "")}</small></div>`).join("")
-    : blanks(5, () => `<div class="item">${line("What:", "")}${line("First next action:", "")}<small>Urgency ___/3 · Deadline ________ · Helper ________</small></div>`)}
+    ? s.liabilities.map(l => `<div class="item">${line("What:", l.description)}${line("First next action:", l.firstAction)}<small>Interference ${esc(rate(l.interference, "interference-0to4-v1"))} · Urgency ${esc(rate(l.urgency, "urgency-0to3-v1"))} · Influence ${esc(rate(l.influence, "influence-0to3-v1"))}${l.response ? ` · Response: ${esc(l.response)}` : ""}</small></div>`).join("")
+    : blanks(5, () => `<div class="item">${line("What:", "")}${line("First next action:", "")}<small>Interference ___/4 · Urgency ___/3 · Influence ___/3<br/>Response: act / ask / reduce / negotiate / cope / monitor / exit</small></div>`)}
 ${line("More dangerous if delayed:", s.mostDangerousDelay)}
 
-<h2>3 · Capacity</h2>
-<p class="note">Not potential — what you can reliably reach today.</p>
+<h2>3 · Current Capacity</h2>
+<p class="note">Past 7 days, ability not worth: 0 Not able · 1 With great difficulty · 2 With some difficulty · 3 Mostly able · 4 Fully able.</p>
 ${CAPACITY_AREAS.map(a => {
     const d = s.capacity[a.id] || {};
-    return `<p><span class="k">${esc(a.label)}:</span> ${d.rating ? `${d.rating}/5` : "___/5"}${d.affecting ? ` — affected by ${esc(d.affecting)}` : ""}${d.replenishes ? ` · replenished by ${esc(d.replenishes)}` : ""}</p>`;
+    return `<p><span class="k">${esc(a.label)}:</span> ${esc(rate(d.rating, "capacity-0to4-v1"))}${d.affecting ? ` — affected by ${esc(d.affecting)}` : ""}${d.replenishes ? ` · would restore 10%: ${esc(d.replenishes)}` : ""}</p>`;
   }).join("")}
 
 <h2>4 · Personal Equity</h2>
@@ -66,31 +76,36 @@ ${s.risks.length
 ${line("Escalation plan:", s.escalationPlan)}
 <p class="safety"><strong>If you are in immediate danger,</strong> contact your local emergency number or go to the nearest emergency department. In the United States you can call or text 988 (Suicide &amp; Crisis Lifeline). This workbook is not a crisis service.</p>
 
-<h2>7 · The 30 · 90 · 365 Plan</h2>
+<h2>7 · Choose One Priority</h2>
+${line("My one priority right now:", s.priority?.area)}
+${line("Why it matters now:", s.priority?.whyNow)}
+${line("What 30 more days unchanged could cost:", s.priority?.costOfNoChange)}
+
+<h2>8 · Build an Action Plan</h2>
 ${[["30", "Stabilize urgent problems and restore basic routines."],
    ["90", "Build consistency, reduce open loops, complete one meaningful priority."],
    ["365", "Create sustainable health, family, work, and purpose systems."]].map(([h, purpose]) => {
     const gs = s.goals.filter(g => g.horizon === h);
     return `<p class="k">Next ${h} days</p><p class="note">${purpose}</p>` + (gs.length
-      ? gs.map(g => `<div class="item">${line("Priority:", g.priority)}${line("Why it matters:", g.why)}${line("Done when:", g.measureOfDone)}${line("First visible action:", g.firstAction)}<small>Target ${esc(g.targetDate || "—")} · ${esc(g.status || "")}</small></div>`).join("")
-      : blanks(3, () => `<div class="item">${line("Priority:", "")}${line("Done when:", "")}${line("First visible action:", "")}</div>`));
+      ? gs.map(g => `<div class="item">${line("Desired outcome:", g.priority)}${line("Why it matters:", g.why)}<small>Importance ${esc(rate(g.importance, "importance-0to10-v1"))}</small>${line("Evidence of progress:", g.measureOfDone)}${line("Likely obstacle:", g.obstacle)}${line("Smallest next action:", g.firstAction)}${line("When and where:", g.whenWhere)}${line("If–then:", g.ifThen)}${line("Support needed:", g.support)}<small>Confidence ${esc(rate(g.confidence, "confidence-0to10-v1"))} · Review ${esc(g.targetDate || "—")}</small></div>`).join("")
+      : blanks(3, () => `<div class="item">${line("Desired outcome:", "")}<small>Importance ___ / 10</small>${line("Evidence of progress:", "")}${line("Likely obstacle:", "")}${line("Smallest next action:", "")}${line("When and where:", "")}${line("If [obstacle], then I will:", "")}${line("Support needed:", "")}<small>Confidence ___ / 10 · Review date ________</small></div>`));
   }).join("")}
-<p class="note">Maximum three priorities per horizon.</p>
+<p class="note">Maximum three priorities per horizon. If confidence is below 7, shrink the step, add support, or change when and where it happens.</p>
 
-<h2>8 · Weekly Close</h2>
-<p class="note">Rate 1–5 each week: sleep · basics · calm · focus · family · admin · support · habits · work.</p>
+<h2>9 · Weekly Close</h2>
+<p class="note">Rate each 0–4 for the past 7 days. Each item is tracked on its own — there is no combined score, because averaging different questions together hides the movement worth seeing.</p>
 ${s.weeklyCloses.length
-    ? s.weeklyCloses.map(w => `<div class="item"><p class="k">Week of ${esc(w.weekOf)}</p>${line("Strengthened:", w.strengthened)}${line("Liability increased:", w.liabilityIncreased)}${line("One move next week:", w.oneMove)}</div>`).join("")
-    : blanks(2, () => `<div class="item">${line("Week of:", "")}${line("What strengthened this week?", "")}${line("What liability increased?", "")}${line("What remains unresolved?", "")}${line("Where did I ask for help?", "")}${line("One move for next week:", "")}</div>`)}
+    ? s.weeklyCloses.map(w => `<div class="item"><p class="k">Week of ${esc(w.weekOf)}</p>${WEEKLY_AREAS.map(a => `<small>${esc(a.label)}: ${esc(rate(w.ratings?.[a.id], "capacity-0to4-v1"))}</small><br/>`).join("")}${line("Action status:", w.actionStatus)}${line("Strengthened:", w.strengthened)}${line("Drained:", w.liabilityIncreased)}${line("One adjustment next week:", w.oneMove)}</div>`).join("")
+    : blanks(2, () => `<div class="item">${line("Week of:", "")}${WEEKLY_AREAS.map(a => `<small>${esc(a.label)}: ___ / 4</small><br/>`).join("")}${line("Action status:", "")}${line("What strengthened this week?", "")}${line("What drained you?", "")}${line("What remains unresolved?", "")}${line("Where did you ask for help?", "")}${line("One adjustment for next week:", "")}</div>`)}
 
-<h2>9 · Focus Triage</h2>
+<h2>10 · Focus Triage</h2>
 ${s.focus.length
     ? s.focus.map(f => `<p><span class="k">${esc(f.decision)}</span> — ${esc(f.name)}${f.reviewDate ? ` <small>(review ${esc(f.reviewDate)})</small>` : ""}</p>`).join("")
     : blanks(5, () => `<p><span class="blank">&nbsp;</span> &nbsp; ACTIVE / MAINTAIN / PARK / ARCHIVE</p>`)}
 <p class="rule">One foundation priority + one flagship commitment + one limited creative outlet. New ideas go to the parking lot until something ships or the review date arrives.</p>
 
 ${summary ? `<h2>Summary</h2>
-<p><span class="k">Assets reachable now:</span> ${summary.strongAccessible.length} &nbsp; <span class="k">Urgent liabilities:</span> ${summary.urgentCount} &nbsp; <span class="k">Average capacity:</span> ${summary.capacityAvg ?? "—"}/5</p>
+<p><span class="k">Resources you can reach:</span> ${summary.accessible.length} &nbsp; <span class="k">Marked for today:</span> ${summary.urgentCount} &nbsp; <span class="k">Average capacity:</span> ${summary.capacityMean ?? "—"}/${summary.capacityMax}</p>
 ${summary.labels.map(l => `<p>· ${esc(l)}</p>`).join("")}` : ""}
 
 <p class="foot">Not a diagnosis, clinical label, legal conclusion, or financial recommendation.<br/>

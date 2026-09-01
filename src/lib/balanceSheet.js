@@ -1,26 +1,44 @@
 // Personal Balance Sheet — a life inventory and action toolkit.
 //
 // Storage: its own IndexedDB database (mindvault_balance_v1). Never share a
-// database name with another module — same-name/same-version databases
-// silently lose their object stores. localStorage is a fallback only if
-// IndexedDB is unavailable (private mode, blocked storage).
+// database name with another module. localStorage is a fallback only when
+// IndexedDB is unavailable.
 //
-// Everything in this module is deterministic. AI is strictly optional and
-// lives behind explicit consent (see buildAIPayload / requestAISummary).
+// Everything here is deterministic. AI is strictly optional and consent-gated.
+// Ratings use the versioned Answer model in balanceAnswers.js; decision-support
+// thresholds live in balanceDecisionSupport.js.
+
+import {
+  QUESTIONS, ANCHOR_SETS, answered, unanswered, valueOf, isAnswered,
+  fromLegacyNumber, ANSWER_STATES,
+} from "./balanceAnswers.js";
 
 const DB_NAME = "mindvault_balance_v1";
 const STORE = "sheets";
 const LS_KEY = "mv_balance_sheet_v1";
 const SHEET_ID = "primary";
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
-// ── Accent palette (accents only — the app's own tokens carry the design) ──
+/**
+ * External AI processing of free-text answers is OFF until an owner has
+ * approved purpose, provider terms, and retention (audit S8). Flipping this to
+ * true is a governance decision, not a code cleanup.
+ */
+export const AI_GOVERNANCE_APPROVED = false;
+
+export const CONSENT_STATEMENT =
+  "I understand this is a private self-reflection tool — not a test, a diagnosis, or a monitored service.";
+export const CONSENT_VERSION = 1;
+
+export const MONITORING_STATEMENT =
+  "No one reviews these answers. Nothing here is monitored and no one is alerted by anything you write. If you need a person to respond, use Get help at the top of any screen.";
+
+export const PROTOTYPE_NOTE =
+  "A research-informed prototype. It has not been validated as an assessment.";
+
+// ── Accent palette (accents only) ─────────────────────────────
 export const C = {
-  navy: "#1D3557",   // structure
-  green: "#2D6A4F",  // assets / stability
-  red: "#C1121F",    // liabilities / risk
-  blue: "#3E7CB1",   // capacity / planning
-  amber: "#E8B84B",  // priorities / command centre
+  navy: "#1D3557", green: "#2D6A4F", red: "#C1121F", blue: "#3E7CB1", amber: "#E8B84B",
 };
 
 // ── Vocabulary ────────────────────────────────────────────────
@@ -44,32 +62,40 @@ export const LIABILITY_CATEGORIES = [
   { id: "fear", label: "Fear, shame, or uncertainty", example: "Something you have not told anyone. Not knowing where you stand." },
 ];
 
+/** How a drain can be responded to (audit F9) — not every problem is solvable. */
+export const DRAIN_RESPONSES = [
+  { id: "act", label: "Act on it", hint: "I can change this directly." },
+  { id: "ask", label: "Ask for support", hint: "Someone else has to be involved." },
+  { id: "reduce", label: "Reduce my exposure", hint: "Less contact, less time, less load." },
+  { id: "negotiate", label: "Renegotiate the terms", hint: "Change the deal rather than the effort." },
+  { id: "cope", label: "Cope while it lasts", hint: "It is not changing yet; I need to carry it well." },
+  { id: "monitor", label: "Monitor for now", hint: "Watch it; act if it worsens." },
+  { id: "exit", label: "Plan an exit", hint: "The realistic answer is to leave it behind." },
+];
+
+/** The seven capacity items, past 7 days, ability not worth (audit F10). */
 export const CAPACITY_AREAS = [
-  { id: "sleep", label: "Sleep and physical energy" },
-  { id: "focus", label: "Concentration and task initiation" },
-  { id: "regulation", label: "Emotional regulation and calm" },
-  { id: "selfcare", label: "Self-care and daily routines" },
-  { id: "presence", label: "Family and relationship presence" },
-  { id: "admin", label: "Administrative follow-through" },
-  { id: "work", label: "Work or study capacity" },
-  { id: "help", label: "Ability to ask for and accept help" },
+  { id: "rest", label: "Get enough rest to function" },
+  { id: "physical", label: "Take care of basic physical needs" },
+  { id: "focus", label: "Focus and make decisions" },
+  { id: "home", label: "Handle essential tasks at home" },
+  { id: "roles", label: "Meet essential responsibilities in your major roles" },
+  { id: "support", label: "Reach or accept useful support or connection" },
+  { id: "recover", label: "Recover after stress" },
 ];
 
+/** Weekly Close ratings (audit F23) — stable, repeatable items only. */
 export const WEEKLY_AREAS = [
-  { id: "sleep", label: "Sleep and energy" },
-  { id: "basics", label: "Hygiene, meals, and movement" },
-  { id: "calm", label: "Calm and emotional regulation" },
-  { id: "focus", label: "Focus and follow-through" },
-  { id: "family", label: "Family and relationship presence" },
-  { id: "admin", label: "Administrative responsibilities" },
-  { id: "support", label: "Treatment or support engagement" },
-  { id: "habits", label: "Habits or substance-use plan" },
-  { id: "work", label: "Primary work or project focus" },
+  { id: "energy", label: "Usable energy" },
+  { id: "focus", label: "Focus" },
+  { id: "recovery", label: "Recovery after stress" },
+  { id: "support", label: "Access to support" },
+  { id: "responsibilities", label: "Ability to meet essential responsibilities" },
+  { id: "drainInterference", label: "Freedom from drain interference", invert: true },
 ];
 
-// A "next physical action" must be visible and specific.
+export const ACTION_STATUSES = ["Not started", "Started", "In progress", "Done", "Changed", "Dropped"];
 export const ACTION_VERBS = ["Open", "Call", "Send", "Schedule", "Gather", "Pay", "Ask", "Complete"];
-
 export const STATUSES = ["Not started", "In progress", "Waiting on someone", "Done"];
 export const PRIORITIES = ["High", "Medium", "Low"];
 export const FOCUS_DECISIONS = ["ACTIVE", "MAINTAIN", "PARK", "ARCHIVE"];
@@ -80,85 +106,23 @@ export const HORIZONS = [
   { id: "365", label: "Next 365 Days", purpose: "Create sustainable health, family, work, and purpose systems." },
 ];
 
-/** Hard cap — the interface must not encourage unlimited goals. */
 export const MAX_GOALS_PER_HORIZON = 3;
 
 export const SECTIONS = [
-  { id: "assets", label: "Assets", accent: C.green },
-  { id: "liabilities", label: "Liabilities", accent: C.red },
+  { id: "assets", label: "Resources", accent: C.green },
+  { id: "liabilities", label: "Drains", accent: C.red },
   { id: "capacity", label: "Capacity", accent: C.blue },
-  { id: "equity", label: "Personal Equity", accent: C.navy },
+  { id: "equity", label: "What's Yours", accent: C.navy },
   { id: "command", label: "Command Center", accent: C.amber },
   { id: "risks", label: "Risks", accent: C.red },
-  { id: "plan", label: "30 · 90 · 365", accent: C.blue },
+  { id: "priority", label: "Priority", accent: C.navy },
+  { id: "plan", label: "Action Plan", accent: C.blue },
   { id: "weekly", label: "Weekly Close", accent: C.green },
   { id: "focus", label: "Focus Triage", accent: C.amber },
 ];
 
-// ── Typed shapes (JSDoc — this codebase is JS, not TypeScript) ─────────────
-/**
- * @typedef {Object} AssetEntry
- * @property {string} id @property {string} category @property {string} description
- * @property {number} strength 1-5 @property {number} access 1-5 @property {string} note
- *
- * @typedef {Object} LiabilityEntry
- * @property {string} id @property {string} category @property {string} description
- * @property {number} urgency 1-3 @property {string} firstAction @property {string} deadline
- * @property {string} helper @property {string} status
- *
- * @typedef {Object} CapacityRating
- * @property {number} rating 1-5 @property {string} affecting
- * @property {string} replenishes @property {string} reduce
- *
- * @typedef {Object} EquityResponse
- * @property {string} values @property {string} whoValuesMe @property {string} provenStrengths
- * @property {string} cannotBeTaken @property {string} assetAgainstLiability
- * @property {string} dealingWith @property {string} stillPossess @property {string} nextMove
- * @property {string} statementOverride
- *
- * @typedef {Object} CommandCenterItem
- * @property {string} id @property {string} issue @property {string} category @property {string} deadline
- * @property {string} nextAction @property {string} verb @property {string} helper
- * @property {string} status @property {string} priority
- *
- * @typedef {Object} RiskEntry
- * @property {string} id @property {string} risk @property {string} warningSign
- * @property {string} prevention @property {string} helper @property {string} escalationPoint
- *
- * @typedef {Object} GoalEntry
- * @property {string} id @property {string} horizon @property {string} priority @property {string} why
- * @property {string} measureOfDone @property {string} firstAction @property {string} targetDate
- * @property {string} support @property {string} status @property {number} progress
- *
- * @typedef {Object} WeeklyClose
- * @property {string} id @property {string} weekOf @property {Object<string,number>} ratings
- * @property {string} strengthened @property {string} liabilityIncreased @property {string} unresolved
- * @property {string} askedForHelp @property {string} oneMove
- *
- * @typedef {Object} FocusItem
- * @property {string} id @property {string} name @property {string} decision
- * @property {string} why @property {string} reviewDate
- *
- * @typedef {Object} AISummaryConsent
- * @property {boolean} granted @property {string} grantedAt @property {string} payloadReviewed
- *
- * @typedef {Object} PersonalBalanceSheet
- * @property {string} id @property {string|null} ownerLabel @property {string} createdAt
- * @property {string} updatedAt @property {number} version
- * @property {'not_started'|'in_progress'|'complete'} completionState
- * @property {string} currentSection
- * @property {AssetEntry[]} assets @property {string} protectFirst
- * @property {LiabilityEntry[]} liabilities @property {string} mostDangerousDelay
- * @property {Object<string,CapacityRating>} capacity @property {EquityResponse} equity
- * @property {CommandCenterItem[]} commandCenter @property {RiskEntry[]} risks
- * @property {string} escalationPlan @property {GoalEntry[]} goals
- * @property {WeeklyClose[]} weeklyCloses @property {FocusItem[]} focus
- * @property {AISummaryConsent|null} aiConsent @property {string|null} aiSummary
- */
-
 export const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random()}`);
 
-/** @returns {PersonalBalanceSheet} */
 export function emptySheet() {
   const now = new Date().toISOString();
   return {
@@ -169,11 +133,14 @@ export function emptySheet() {
     version: SCHEMA_VERSION,
     completionState: "not_started",
     currentSection: "assets",
+    consent: null,
+    usefulToday: "",
     assets: [],
     protectFirst: "",
     liabilities: [],
     mostDangerousDelay: "",
     capacity: {},
+    capacityLegacy: null,
     equity: {
       values: "", whoValuesMe: "", provenStrengths: "", cannotBeTaken: "",
       assetAgainstLiability: "", dealingWith: "", stillPossess: "", nextMove: "",
@@ -182,20 +149,53 @@ export function emptySheet() {
     commandCenter: [],
     risks: [],
     escalationPlan: "",
+    priority: { area: "", whyNow: "", costOfNoChange: "" },
     goals: [],
     weeklyCloses: [],
     focus: [],
+    feedback: null,
     aiConsent: null,
     aiSummary: null,
   };
 }
 
+export const newAsset = () => ({
+  id: uid(), category: "relationships", description: "",
+  strength: unanswered("resource.strength"), access: unanswered("resource.access"),
+  easierToUse: "", note: "",
+});
+
+export const newLiability = () => ({
+  id: uid(), category: "health", description: "",
+  interference: unanswered("drain.interference"),
+  urgency: unanswered("drain.urgency"),
+  influence: unanswered("drain.influence"),
+  response: "", firstAction: "", deadline: "", helper: "", status: "Not started",
+});
+
+export const newGoal = (horizon) => ({
+  id: uid(), horizon, priority: "", why: "",
+  importance: unanswered("plan.importance"),
+  measureOfDone: "", obstacle: "", firstAction: "", whenWhere: "", ifThen: "",
+  support: "", confidence: unanswered("plan.confidence"),
+  targetDate: "", status: "Not started", progress: 0,
+});
+
+export const newWeekly = () => ({
+  id: uid(), weekOf: new Date().toISOString().slice(0, 10),
+  ratings: Object.fromEntries(WEEKLY_AREAS.map(a => [a.id, unanswered("weekly.item")])),
+  actionStatus: "", strengthened: "", liabilityIncreased: "",
+  unresolved: "", askedForHelp: "", oneMove: "",
+});
+
 // ── Storage adapter ───────────────────────────────────────────
 function openDB() {
   return new Promise((resolve, reject) => {
-    if (typeof indexedDB === "undefined") { reject(new Error("no indexeddb")); return; }
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onerror = () => reject(req.error);
+    if (typeof indexedDB === "undefined") { reject(new Error("IndexedDB unavailable")); return; }
+    let req;
+    try { req = indexedDB.open(DB_NAME, 1); }
+    catch (err) { reject(err); return; }
+    req.onerror = () => reject(req.error || new Error("IndexedDB open failed"));
     req.onsuccess = () => resolve(req.result);
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
@@ -208,11 +208,13 @@ const lsRead = () => {
   try { const raw = localStorage.getItem(LS_KEY); return raw ? JSON.parse(raw) : null; }
   catch { return null; }
 };
+
+/** Throws on failure — callers must be able to tell the user nothing was saved. */
 const lsWrite = (sheet) => {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(sheet)); } catch { /* quota */ }
+  if (typeof localStorage === "undefined") throw new Error("localStorage unavailable");
+  localStorage.setItem(LS_KEY, JSON.stringify(sheet));
 };
 
-/** Where the user's data actually lives — surfaced in the privacy notice. */
 export async function storageLocation() {
   try { await openDB(); return "IndexedDB on this device"; }
   catch { return "this browser's local storage on this device"; }
@@ -232,20 +234,40 @@ export async function loadSheet() {
   return ls ? migrate(ls) : null;
 }
 
+/**
+ * AUDIT P0-1: this used to swallow every storage error and resolve as if the
+ * write succeeded, so the UI told the user "Saved" when nothing was written.
+ * It now rejects when BOTH stores fail, and reports which store took the data
+ * so the caller can warn on a degraded path.
+ */
 export async function saveSheet(sheet) {
   const next = { ...sheet, updatedAt: new Date().toISOString(), version: SCHEMA_VERSION };
+  let idbError = null;
   try {
     const db = await openDB();
     await new Promise((res, rej) => {
       const tx = db.transaction(STORE, "readwrite");
       tx.objectStore(STORE).put(next);
       tx.oncomplete = () => res();
-      tx.onerror = () => rej(tx.error);
+      tx.onerror = () => rej(tx.error || new Error("write failed"));
+      tx.onabort = () => rej(tx.error || new Error("write aborted"));
     });
-  } catch {
-    lsWrite(next); // fallback path
+    return { sheet: next, storedIn: "indexeddb" };
+  } catch (err) {
+    idbError = err;
   }
-  return next;
+  try {
+    lsWrite(next);
+    return { sheet: next, storedIn: "localstorage", degraded: true, reason: idbError?.message };
+  } catch (lsErr) {
+    const e = new Error(
+      `Could not save. IndexedDB: ${idbError?.message || "unavailable"}. Local storage: ${lsErr?.message || "unavailable"}.`
+    );
+    e.name = "BalanceSheetSaveError";
+    e.idbError = idbError;
+    e.lsError = lsErr;
+    throw e;
+  }
 }
 
 export async function deleteSheet() {
@@ -261,43 +283,95 @@ export async function deleteSheet() {
   try { localStorage.removeItem(LS_KEY); } catch { /* ignore */ }
 }
 
-/** Forward-compatible: fill in anything a newer shape expects. */
-function migrate(sheet) {
-  return { ...emptySheet(), ...sheet, equity: { ...emptySheet().equity, ...(sheet.equity || {}) } };
+/**
+ * v1 → v2 migration.
+ *
+ * Deliberately ADDITIVE. v1 stored bare 1–5 numbers; v2 stores versioned
+ * Answers on 0–4 scales where 0 is a real answer. Subtracting one from every
+ * old rating would silently change what the user said, so old values keep
+ * their original number and are tagged with a legacy anchor set. Trends refuse
+ * to mix anchor sets, so nothing is misread.
+ *
+ * v1 capacity used a different, eight-item set. Rather than guess a mapping
+ * between differently-worded items, v1 capacity is preserved verbatim under
+ * `capacityLegacy` and the v2 section starts fresh.
+ */
+export function migrate(raw) {
+  const base = emptySheet();
+  if (!raw) return base;
+  const fromVersion = Number(raw.version) || 1;
+  const s = {
+    ...base, ...raw,
+    equity: { ...base.equity, ...(raw.equity || {}) },
+    priority: { ...base.priority, ...(raw.priority || {}) },
+  };
+  if (fromVersion >= 2) return s;
+
+  s.assets = (raw.assets || []).map(a => ({
+    ...newAsset(), ...a,
+    strength: typeof a.strength === "number" ? fromLegacyNumber(a.strength) : (a.strength ?? unanswered("resource.strength")),
+    access: typeof a.access === "number" ? fromLegacyNumber(a.access) : (a.access ?? unanswered("resource.access")),
+  }));
+
+  s.liabilities = (raw.liabilities || []).map(l => ({
+    ...newLiability(), ...l,
+    urgency: typeof l.urgency === "number"
+      ? fromLegacyNumber(l.urgency, "legacy-urgency-1to3-v1")
+      : (l.urgency ?? unanswered("drain.urgency")),
+    interference: l.interference ?? unanswered("drain.interference"),
+    influence: l.influence ?? unanswered("drain.influence"),
+  }));
+
+  const legacyCapacity = raw.capacity && Object.keys(raw.capacity).length ? raw.capacity : null;
+  s.capacityLegacy = legacyCapacity;
+  s.capacity = {};
+
+  s.goals = (raw.goals || []).map(g => ({ ...newGoal(g.horizon || "30"), ...g,
+    importance: g.importance ?? unanswered("plan.importance"),
+    confidence: g.confidence ?? unanswered("plan.confidence"),
+  }));
+
+  s.weeklyCloses = (raw.weeklyCloses || []).map(w => {
+    const ratings = {};
+    for (const [k, v] of Object.entries(w.ratings || {})) {
+      ratings[k] = typeof v === "number" ? fromLegacyNumber(v) : v;
+    }
+    return { ...newWeekly(), ...w, ratings, legacyItemSet: true };
+  });
+
+  s.version = SCHEMA_VERSION;
+  s.migratedFrom = fromVersion;
+  return s;
 }
 
-// ── Deterministic derivations (no AI involved) ────────────────
-const avg = (nums) => (nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0);
+// ── Derivations (deterministic, no AI) ────────────────────────
+const mean = (nums) => (nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0);
 
 export function urgentLiabilities(sheet) {
-  return (sheet.liabilities || []).filter(l => Number(l.urgency) === 3 && l.status !== "Done");
+  return (sheet.liabilities || []).filter(l => valueOf(l.urgency) === 3 && l.status !== "Done");
 }
 
+/** Only answered items. A declined or unanswered rating is never treated as 0. */
 export function capacityScores(sheet) {
   return CAPACITY_AREAS
-    .map(a => ({ ...a, rating: Number(sheet.capacity?.[a.id]?.rating) || 0 }))
-    .filter(a => a.rating > 0);
+    .map(a => ({ ...a, answer: sheet.capacity?.[a.id]?.rating }))
+    .filter(a => isAnswered(a.answer))
+    .map(a => ({ ...a, rating: a.answer.value }));
 }
 
 const DAY = 86400000;
 const pRank = { High: 0, Medium: 1, Low: 2 };
 
-/**
- * Urgency bucket. Deadline proximity and priority BOTH matter: a low-priority
- * task due in three months must not outrank a high-priority one with no date,
- * which is what sorting on the raw deadline alone produces.
- */
 function urgencyBucket(item, now) {
   const due = item.deadline ? Date.parse(item.deadline) : null;
   const days = due != null && !Number.isNaN(due) ? (due - now) / DAY : null;
-  if (days != null && days <= 7) return 0;            // overdue or this week
+  if (days != null && days <= 7) return 0;
   if (item.priority === "High") return 1;
-  if (days != null && days <= 30) return 2;           // this month
+  if (days != null && days <= 30) return 2;
   if (item.priority === "Medium") return 3;
   return 4;
 }
 
-/** Sort: urgent deadlines and high-priority items first; done items last. */
 export function sortedCommandCenter(sheet, now = Date.now()) {
   const sRank = { "In progress": 0, "Not started": 1, "Waiting on someone": 2, Done: 3 };
   return [...(sheet.commandCenter || [])].sort((a, b) => {
@@ -321,30 +395,56 @@ export function equityStatement(sheet) {
 }
 
 /**
- * The results dashboard. Descriptive labels are only attached when the user's
- * own answers support them — never as flattery or as a diagnosis.
+ * Within-person trend for ONE weekly item. Only points sharing an anchor set
+ * and question version are returned together, so a revised scale starts a new
+ * series instead of silently continuing an old one (audit F24/D7). There is
+ * deliberately no composite index across items.
  */
+export function weeklySeries(sheet, itemId) {
+  const points = [...(sheet.weeklyCloses || [])]
+    .sort((a, b) => (a.weekOf || "").localeCompare(b.weekOf || ""))
+    .map(w => ({ weekOf: w.weekOf, answer: w.ratings?.[itemId] }))
+    .filter(p => isAnswered(p.answer));
+  if (!points.length) return { series: [], anchors: null, split: false };
+  const anchors = points[points.length - 1].answer.anchors;
+  const qv = points[points.length - 1].answer.qv;
+  const current = points.filter(p => p.answer.anchors === anchors && p.answer.qv === qv);
+  return {
+    series: current.map(p => ({ weekOf: p.weekOf, value: p.answer.value })),
+    anchors,
+    split: current.length !== points.length,
+    max: ANCHOR_SETS[anchors]?.max ?? 4,
+  };
+}
+
 export function deriveSummary(sheet) {
   const assets = sheet.assets || [];
-  const strongAccessible = assets.filter(a => a.strength >= 4 && a.access >= 4);
-  const strongHardToAccess = assets.filter(a => a.strength >= 4 && a.access <= 2);
+  const accessible = assets.filter(a => (valueOf(a.access) ?? -1) >= 3);
+  const hardToAccess = assets.filter(a => {
+    const v = valueOf(a.access);
+    return v != null && v <= 1;
+  });
   const urgent = urgentLiabilities(sheet);
   const caps = capacityScores(sheet);
-  const lowest = [...caps].sort((a, b) => a.rating - b.rating).slice(0, 3).filter(c => c.rating <= 2);
-  const capacityAvg = avg(caps.map(c => c.rating));
+  const lowest = [...caps].sort((a, b) => a.rating - b.rating).slice(0, 3).filter(c => c.rating <= 1);
+  const capacityMean = caps.length ? mean(caps.map(c => c.rating)) : null;
   const openCommand = sortedCommandCenter(sheet).filter(i => i.status !== "Done");
 
+  const highInterference = (sheet.liabilities || []).filter(
+    l => (valueOf(l.interference) ?? -1) >= 3 && l.status !== "Done"
+  );
+
   const labels = [];
-  if (assets.length >= 3 && caps.length >= 3 && capacityAvg <= 2.5) {
-    labels.push("Asset-rich but currently capacity-constrained");
+  if (assets.length >= 3 && caps.length >= 3 && capacityMean != null && capacityMean <= 1.5) {
+    labels.push("Resource-rich but currently capacity-constrained");
   }
-  if (strongHardToAccess.length >= 2) {
-    labels.push("Strong long-term ability with limited present access");
+  if (hardToAccess.length >= 2) {
+    labels.push("Real support that is currently hard to reach");
   }
   if (urgent.length >= 3) {
-    labels.push("High liability pressure requiring immediate prioritization");
+    labels.push("High pressure requiring immediate prioritization");
   }
-  if (assets.length >= 1 && caps.length >= 3 && capacityAvg <= 2.5) {
+  if (assets.length >= 1 && caps.length >= 3 && capacityMean != null && capacityMean <= 1.5) {
     labels.push("Your current capacity does not erase your underlying value");
   }
 
@@ -354,19 +454,20 @@ export function deriveSummary(sheet) {
       .map(i => ({ what: i.issue, date: i.deadline, from: "Command Center" })),
     ...(sheet.goals || []).filter(g => g.targetDate && g.status !== "Done")
       .map(g => ({ what: g.priority, date: g.targetDate, from: `${g.horizon}-day plan` })),
-  ].filter(d => Date.parse(d.date) >= now - 86400000)
+  ].filter(d => Date.parse(d.date) >= now - DAY)
    .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
    .slice(0, 6);
 
   return {
-    strongAccessible,
-    strongHardToAccess,
-    urgentCount: urgent.length,
-    urgent,
+    accessible, hardToAccess,
+    urgent, urgentCount: urgent.length,
+    highInterference,
     lowestCapacity: lowest,
-    capacityAvg: caps.length ? Number(capacityAvg.toFixed(1)) : null,
+    capacityMean: capacityMean == null ? null : Number(capacityMean.toFixed(1)),
+    capacityMax: ANCHOR_SETS["capacity-0to4-v1"].max,
     immediateActions: openCommand.slice(0, 5),
     equityStatement: equityStatement(sheet),
+    priority: sheet.priority || {},
     top30: (sheet.goals || []).filter(g => g.horizon === "30").slice(0, MAX_GOALS_PER_HORIZON),
     upcoming,
     focus: sheet.focus || [],
@@ -375,27 +476,23 @@ export function deriveSummary(sheet) {
   };
 }
 
-/** Completion is generous on purpose: no sensitive field is ever required. */
 export function sectionProgress(sheet) {
+  const any = (v) => !!String(v || "").trim();
   return {
     assets: (sheet.assets || []).length > 0,
     liabilities: (sheet.liabilities || []).length > 0,
     capacity: capacityScores(sheet).length > 0,
-    equity: Object.values(sheet.equity || {}).some(v => String(v || "").trim()),
+    equity: Object.values(sheet.equity || {}).some(any),
     command: (sheet.commandCenter || []).length > 0,
-    risks: (sheet.risks || []).length > 0 || !!String(sheet.escalationPlan || "").trim(),
+    risks: (sheet.risks || []).length > 0 || any(sheet.escalationPlan),
+    priority: any(sheet.priority?.area) || any(sheet.priority?.whyNow),
     plan: (sheet.goals || []).length > 0,
     weekly: (sheet.weeklyCloses || []).length > 0,
     focus: (sheet.focus || []).length > 0,
   };
 }
 
-// ── AI (optional, consent-gated) ──────────────────────────────
-/**
- * Best-effort scrubbing of obvious identifiers before the user reviews the
- * payload. This is an aid, not a guarantee — the user always sees and can
- * edit the exact text before anything is sent.
- */
+// ── AI (optional, consent-gated, governance-gated) ────────────
 export function scrubText(text) {
   if (!text) return "";
   return String(text)
@@ -407,46 +504,64 @@ export function scrubText(text) {
     .replace(/\bDr\.?\s+[A-Z][a-z]+/g, "[CLINICIAN]");
 }
 
-/** Builds the exact text the user will review before any AI call. */
+const labelFor = (questionId, answer) => {
+  if (!isAnswered(answer)) return null;
+  const set = ANCHOR_SETS[QUESTIONS[questionId]?.anchors];
+  const l = set?.labels?.[answer.value];
+  return l ? `${answer.value} (${l})` : String(answer.value);
+};
+
 export function buildAIPayload(sheet, { scrub = true } = {}) {
   const s = (v) => (scrub ? scrubText(v) : String(v || ""));
   const lines = [];
   if (sheet.assets?.length) {
-    lines.push("ASSETS:");
-    sheet.assets.forEach(a => lines.push(`- ${s(a.description)} (strength ${a.strength}/5, access now ${a.access}/5)${a.note ? ` — ${s(a.note)}` : ""}`));
+    lines.push("RESOURCES:");
+    sheet.assets.forEach(a => {
+      const acc = labelFor("resource.access", a.access);
+      lines.push(`- ${s(a.description)}${acc ? ` — availability in the past 7 days: ${acc}` : ""}${a.note ? ` — ${s(a.note)}` : ""}`);
+    });
   }
-  if (sheet.protectFirst) lines.push(`Asset to protect first: ${s(sheet.protectFirst)}`);
+  if (sheet.protectFirst) lines.push(`Resource to protect first: ${s(sheet.protectFirst)}`);
   if (sheet.liabilities?.length) {
-    lines.push("", "LIABILITIES:");
-    sheet.liabilities.forEach(l => lines.push(`- ${s(l.description)} (urgency ${l.urgency}/3, status ${l.status || "unset"})${l.firstAction ? ` — first action: ${s(l.firstAction)}` : ""}`));
+    lines.push("", "DRAINS:");
+    sheet.liabilities.forEach(l => {
+      const parts = [
+        labelFor("drain.interference", l.interference) && `interference ${labelFor("drain.interference", l.interference)}`,
+        labelFor("drain.urgency", l.urgency) && `urgency ${labelFor("drain.urgency", l.urgency)}`,
+        labelFor("drain.influence", l.influence) && `influence ${labelFor("drain.influence", l.influence)}`,
+      ].filter(Boolean).join(", ");
+      lines.push(`- ${s(l.description)}${parts ? ` (${parts})` : ""}${l.firstAction ? ` — first action: ${s(l.firstAction)}` : ""}`);
+    });
   }
-  if (sheet.mostDangerousDelay) lines.push(`Most dangerous to delay: ${s(sheet.mostDangerousDelay)}`);
   const caps = capacityScores(sheet);
   if (caps.length) {
-    lines.push("", "CAPACITY (1-5 self-rating):");
+    lines.push("", "CAPACITY (past 7 days):");
     caps.forEach(c => {
       const d = sheet.capacity[c.id] || {};
-      lines.push(`- ${c.label}: ${c.rating}/5${d.affecting ? ` — affected by: ${s(d.affecting)}` : ""}${d.replenishes ? ` — replenished by: ${s(d.replenishes)}` : ""}`);
+      lines.push(`- ${c.label}: ${labelFor("capacity.item", d.rating)}${d.affecting ? ` — affected by: ${s(d.affecting)}` : ""}`);
     });
   }
   const e = sheet.equity || {};
   const eq = [
     e.values && `Core values: ${s(e.values)}`,
-    e.whoValuesMe && `Valued beyond performance by: ${s(e.whoValuesMe)}`,
     e.provenStrengths && `Proven strengths: ${s(e.provenStrengths)}`,
     e.cannotBeTaken && `Cannot be taken by a setback: ${s(e.cannotBeTaken)}`,
   ].filter(Boolean);
-  if (eq.length) lines.push("", "PERSONAL EQUITY:", ...eq.map(x => `- ${x}`));
-  if (sheet.commandCenter?.length) {
-    lines.push("", "OPEN ITEMS:");
-    sortedCommandCenter(sheet).filter(i => i.status !== "Done").forEach(i =>
-      lines.push(`- ${s(i.issue)} (${i.priority || "unprioritised"}${i.deadline ? `, due ${i.deadline}` : ""}) next: ${s(i.nextAction)}`));
+  if (eq.length) lines.push("", "WHAT'S STILL YOURS:", ...eq.map(x => `- ${x}`));
+  if (sheet.priority?.area) {
+    lines.push("", "CHOSEN PRIORITY:", `- ${s(sheet.priority.area)}`,
+      sheet.priority.whyNow && `  why now: ${s(sheet.priority.whyNow)}`,
+      sheet.priority.costOfNoChange && `  cost of no change: ${s(sheet.priority.costOfNoChange)}`);
   }
   if (sheet.goals?.length) {
     lines.push("", "PLAN:");
-    sheet.goals.forEach(g => lines.push(`- [${g.horizon}d] ${s(g.priority)}${g.measureOfDone ? ` — done when: ${s(g.measureOfDone)}` : ""}`));
+    sheet.goals.forEach(g => lines.push(
+      `- [${g.horizon}d] ${s(g.priority)}${g.measureOfDone ? ` — done when: ${s(g.measureOfDone)}` : ""}` +
+      `${labelFor("plan.importance", g.importance) ? ` — importance ${labelFor("plan.importance", g.importance)}` : ""}` +
+      `${labelFor("plan.confidence", g.confidence) ? ` — confidence ${labelFor("plan.confidence", g.confidence)}` : ""}`
+    ));
   }
-  return lines.join("\n").trim();
+  return lines.filter(Boolean).join("\n").trim();
 }
 
 export const AI_SYSTEM_PROMPT = `You are helping a man organize a personal life inventory he filled in himself, inside a private wellness app. He has explicitly asked for help organizing his own answers.
@@ -461,6 +576,9 @@ Hard rules:
 - Never advise starting, stopping, or changing medication or treatment.
 - Never make legal, benefits-eligibility, or financial determinations.
 - Never invent deadlines, resources, phone numbers, organisations, or facts he did not provide.
+- Where he reported low influence over something, do not tell him to try harder; support, reduced exposure, renegotiation, coping and exit are legitimate answers.
 - Present observations as readings of what he wrote, not established fact.
 - You are not a clinician, attorney, financial professional, or crisis service. If his answers suggest danger to himself or others, say plainly that this is beyond what the tool can help with and that he should contact a qualified person or emergency service today.
 - Respectful, direct, adult. No hype, no pep talk, no shaming, no "be tougher".`;
+
+export { ANSWER_STATES };
