@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "Q7085": {
+      "type": "item",
+      "id": "Q7085",
+      "labels": { "en": { "language": "en", "value": "Niels Bohr" } },
+      "descriptions": { "en": { "language": "en", "value": "Danish physicist (1885–1962)" } },
+      "aliases": {
+        "en": [
+          { "language": "en", "value": "Niels Henrik David Bohr" },
+          { "language": "en", "value": "N. Bohr" }
+        ]
+      },
+      "claims": {
+        "P31": [
+          { "mainsnak": { "snaktype": "value", "property": "P31",
+            "datavalue": { "value": { "id": "Q5" }, "type": "wikibase-entityid" } } }
+        ],
+        "P569": [
+          { "mainsnak": { "snaktype": "value", "property": "P569",
+            "datavalue": { "value": { "time": "+1885-10-07T00:00:00Z", "precision": 11 }, "type": "time" } } }
+        ],
+        "P570": [
+          { "mainsnak": { "snaktype": "value", "property": "P570",
+            "datavalue": { "value": { "time": "+1962-11-18T00:00:00Z", "precision": 11 }, "type": "time" } } }
+        ],
+        "P106": [
+          { "mainsnak": { "snaktype": "value", "property": "P106",
+            "datavalue": { "value": { "id": "Q169470" }, "type": "wikibase-entityid" } } }
+        ],
+        "P19": [
+          { "mainsnak": { "snaktype": "value", "property": "P19",
+            "datavalue": { "value": { "id": "Q1748" }, "type": "wikibase-entityid" } } }
+        ],
+        "P214": [
+          { "mainsnak": { "snaktype": "value", "property": "P214",
+            "datavalue": { "value": "112063001", "type": "string" } } }
+        ]
+      }
+    }
+  },
+  "success": 1
+}

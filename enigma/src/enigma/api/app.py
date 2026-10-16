@@ -16,6 +16,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from enigma import __version__
+from enigma.adapters import ResolutionQuery, WikidataAdapter
 from enigma.canon import ENGINE_VERSION, get_rule, run_rule
 from enigma.canon.registry import list_rules
 
@@ -113,7 +114,6 @@ def transforms_run(req: TransformRequest) -> dict:
 # Not yet implemented — contract declared, behavior pending
 # --------------------------------------------------------------------------
 _PENDING = {
-    "POST /v1/entities/resolve": "identity resolution (Wikidata/MusicBrainz) — phase: Research MVP",
     "POST /v1/research-runs": "research-run ledger — phase: Research MVP",
     "GET /v1/entities/{id}/graph": "relationship graph — phase: Research MVP",
     "POST /v1/discovery": "candidate-finding engine — phase: Discovery",
@@ -127,9 +127,54 @@ def _not_implemented(key: str):
     raise HTTPException(status_code=501, detail={"not_implemented": key, "plan": _PENDING[key]})
 
 
+class ResolveRequest(BaseModel):
+    name: str
+    entity_type: Optional[str] = None
+    birth_year: Optional[int] = None
+    death_year: Optional[int] = None
+    external_ids: dict[str, str] = {}
+    limit: int = 7
+
+
 @app.post("/v1/entities/resolve")
-def entities_resolve() -> dict:
-    _not_implemented("POST /v1/entities/resolve")
+def entities_resolve(req: ResolveRequest) -> dict:
+    """Resolve a query to ranked Wikidata candidates (LIVE — calls Wikidata).
+
+    Returns the full per-dimension signal breakdown for each candidate; the
+    composite confidence is only a ranking key, never a verdict.
+    """
+    adapter = WikidataAdapter()
+    query = ResolutionQuery(
+        name=req.name,
+        entity_type=req.entity_type,
+        birth_year=req.birth_year,
+        death_year=req.death_year,
+        external_ids=req.external_ids,
+    )
+    try:
+        results = adapter.resolve(query, limit=req.limit)
+    except Exception as exc:  # noqa: BLE001 — surface upstream failure as 502
+        raise HTTPException(status_code=502, detail=f"Wikidata unavailable: {exc}") from exc
+
+    return {
+        "authority": adapter.authority,
+        "rights": adapter.get_rights().__dict__,
+        "candidates": [
+            {
+                "external_id": r.candidate.external_id,
+                "label": r.candidate.label,
+                "type": r.candidate.type,
+                "description": r.candidate.description,
+                "external_ids": r.candidate.external_ids,
+                "birth_year": r.candidate.birth_year,
+                "death_year": r.candidate.death_year,
+                "confidence": r.confidence,
+                "signals": r.signals,
+                "authoritative_id_match": r.authoritative_id_match,
+            }
+            for r in results
+        ],
+    }
 
 
 @app.post("/v1/research-runs")

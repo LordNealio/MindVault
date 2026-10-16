@@ -1,0 +1,21 @@
+{
+  "searchinfo": { "search": "Niels Bohr" },
+  "search": [
+    {
+      "id": "Q7085",
+      "label": "Niels Bohr",
+      "description": "Danish physicist (1885–1962)"
+    },
+    {
+      "id": "Q2457049",
+      "label": "Niels Bohr",
+      "description": "cargo ship"
+    },
+    {
+      "id": "Q1960843",
+      "label": "Niels Bohr Institute",
+      "description": "research institute of the University of Copenhagen"
+    }
+  ],
+  "success": 1
+}

@@ -31,9 +31,26 @@ This is the P0 foundation only — the part that proves the architecture. It is 
 | Postgres schema (entity / source / claim / relationship / rule / run / finding / rights) | `db/migrations/0001_init.sql` |
 | Canon engine (deterministic, versioned, replayable) | `src/enigma/canon/` — **working** |
 | Canonical rule specs (A1Z26, digit sum, digital root, reverse, date interval) | `rules/canonical/*.yaml` — **working** |
-| FastAPI skeleton | `src/enigma/api/app.py` — Canon endpoints **live**, rest are honest `501` stubs |
+| FastAPI skeleton | `src/enigma/api/app.py` — Canon + `/v1/entities/resolve` **live**, rest are honest `501` stubs |
 | Golden + reproducibility tests | `tests/` — **working** |
-| Wikidata / MusicBrainz adapters, discovery, pgvector, UI | **not built yet** (next phases) |
+| Wikidata adapter + multi-signal entity resolution | `src/enigma/adapters/` — **working** (offline-tested + live) |
+| MusicBrainz adapter, research-run ledger, discovery, pgvector, UI | **not built yet** (next phases) |
+
+## Entity resolution (Wikidata)
+
+`src/enigma/adapters/` adds the first source adapter behind a provider-neutral
+`SourceAdapter` protocol. Wikidata (CC0) resolves a query to ranked candidates scored on
+**independent dimensions** — name, alias, type, birth/death year, authoritative id match —
+that are never collapsed into a single number: each `ResolutionResult` carries its full
+`signals` breakdown plus a `coverage` figure. A name-only hit scores lower than one
+corroborated on type and dates, and a shared stable id (VIAF/MusicBrainz/ORCID) is decisive.
+HTTP lives only in `WikidataClient`; parsing and scoring are pure, so the suite runs offline
+against recorded fixtures (`tests/fixtures/`). One opt-in live test: `ENIGMA_LIVE_TESTS=1`.
+
+```
+1.000  Q7085      person   Niels Bohr  | name=1.0, type=1.0, birth_year=1.0
+0.533  Q20652992  -        Niels Bohr  | name=1.0        (name only -> lower certainty)
+```
 
 ## The Canon engine
 

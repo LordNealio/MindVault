@@ -1,0 +1,18 @@
+{
+  "entities": {
+    "Q2457049": {
+      "type": "item",
+      "id": "Q2457049",
+      "labels": { "en": { "language": "en", "value": "Niels Bohr" } },
+      "descriptions": { "en": { "language": "en", "value": "cargo ship" } },
+      "aliases": {},
+      "claims": {
+        "P31": [
+          { "mainsnak": { "snaktype": "value", "property": "P31",
+            "datavalue": { "value": { "id": "Q11446" }, "type": "wikibase-entityid" } } }
+        ]
+      }
+    }
+  },
+  "success": 1
+}

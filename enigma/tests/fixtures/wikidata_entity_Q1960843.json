@@ -1,0 +1,18 @@
+{
+  "entities": {
+    "Q1960843": {
+      "type": "item",
+      "id": "Q1960843",
+      "labels": { "en": { "language": "en", "value": "Niels Bohr Institute" } },
+      "descriptions": { "en": { "language": "en", "value": "research institute of the University of Copenhagen" } },
+      "aliases": {},
+      "claims": {
+        "P31": [
+          { "mainsnak": { "snaktype": "value", "property": "P31",
+            "datavalue": { "value": { "id": "Q43229" }, "type": "wikibase-entityid" } } }
+        ]
+      }
+    }
+  },
+  "success": 1
+}
