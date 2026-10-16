@@ -1,0 +1,26 @@
+id: numeric.a1z26
+version: 1.0.0
+status: canonical
+title: A1Z26 letter-sum
+description: >
+  Map each Latin letter A=1 .. Z=26 over the normalized input and sum.
+  Canonical mapping; no reductions beyond the sum.
+input_types:
+  - text
+normalization:
+  unicode: NFKD
+  case: upper
+  accepted_characters: A-Z
+  whitespace: remove
+operation:
+  type: a1z26          # engine holds the canonical A=1..Z=26 mapping + sum
+outputs:
+  - values
+  - sum
+tests:
+  - input: "ABC"
+    result: { values: [1, 2, 3], sum: 6 }
+  - input: "Niels Bohr"
+    result: { values: [14, 9, 5, 12, 19, 2, 15, 8, 18], sum: 102 }
+  - input: "Z"
+    result: { values: [26], sum: 26 }

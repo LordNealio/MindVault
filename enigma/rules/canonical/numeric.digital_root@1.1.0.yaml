@@ -1,0 +1,24 @@
+id: numeric.digital_root
+version: 1.1.0
+status: canonical
+title: Digital root
+description: >
+  Repeatedly sum decimal digits until a single digit remains (base-10 digital root).
+  Zero maps to 0.
+input_types:
+  - text
+normalization:
+  unicode: NFKD
+  accepted_characters: "0-9"
+  whitespace: remove
+operation:
+  type: digital_root
+outputs:
+  - root
+tests:
+  - input: "102"
+    result: { root: 3 }
+  - input: "1885"
+    result: { root: 4 }   # 1+8+8+5=22 -> 2+2=4
+  - input: "0"
+    result: { root: 0 }

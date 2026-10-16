@@ -1,0 +1,21 @@
+id: numeric.digit_sum
+version: 1.0.0
+status: canonical
+title: Digit sum
+description: Sum the decimal digits of the normalized input (digits only).
+input_types:
+  - text
+normalization:
+  unicode: NFKD
+  accepted_characters: "0-9"
+  whitespace: remove
+operation:
+  type: digit_sum
+outputs:
+  - digits
+  - sum
+tests:
+  - input: "102"
+    result: { digits: [1, 0, 2], sum: 3 }
+  - input: "1885"
+    result: { digits: [1, 8, 8, 5], sum: 22 }

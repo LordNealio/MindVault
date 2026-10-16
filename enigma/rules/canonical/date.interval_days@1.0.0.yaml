@@ -1,0 +1,34 @@
+id: date.interval_days
+version: 1.0.0
+status: canonical
+title: Date interval in days
+description: >
+  Whole-day difference (to - from) on the proleptic Gregorian calendar.
+  Endpoints are treated as calendar dates; the result is `to` minus `from` in days.
+  `inclusive: false` (default) returns the raw difference; `inclusive: true` adds 1.
+input_types:
+  - date_pair          # raw_input = { "from": "YYYY-MM-DD", "to": "YYYY-MM-DD", "inclusive"?: bool }
+operation:
+  type: date_interval_days
+  calendar: gregorian
+  default_inclusive: false
+outputs:
+  - days
+tests:
+  # Kendrick Lamar — untitled unmastered. embedded dates -> release 2016-03-04
+  - input: { from: "2014-08-19", to: "2016-03-04" }   # untitled 01
+    result: { days: 563 }
+  - input: { from: "2014-06-23", to: "2016-03-04" }   # untitled 02
+    result: { days: 620 }
+  - input: { from: "2013-05-28", to: "2016-03-04" }   # untitled 03
+    result: { days: 1011 }
+  - input: { from: "2014-08-14", to: "2016-03-04" }   # untitled 04
+    result: { days: 568 }
+  - input: { from: "2014-09-21", to: "2016-03-04" }   # untitled 05
+    result: { days: 530 }
+  - input: { from: "2013-06-30", to: "2016-03-04" }   # untitled 06
+    result: { days: 978 }
+  - input: { from: "2014-09-06", to: "2016-03-04" }   # untitled 08
+    result: { days: 545 }
+  - input: { from: "2016-03-03", to: "2016-03-04", inclusive: true }  # inclusive counting adds 1
+    result: { days: 2 }

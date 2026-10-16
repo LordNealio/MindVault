@@ -1,0 +1,21 @@
+id: text.reverse
+version: 1.0.0
+status: canonical
+title: String reversal
+description: Reverse the normalized input character sequence.
+input_types:
+  - text
+normalization:
+  unicode: NFKD
+  case: upper
+  accepted_characters: A-Z
+  whitespace: remove
+operation:
+  type: reverse
+outputs:
+  - reversed
+tests:
+  - input: "Niels Bohr"
+    result: { reversed: "RHOBSLEIN" }
+  - input: "abc"
+    result: { reversed: "CBA" }
