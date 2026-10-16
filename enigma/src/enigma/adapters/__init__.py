@@ -19,6 +19,7 @@ from enigma.adapters.resolution import (
     ResolutionResult,
     score_candidate,
 )
+from enigma.adapters.musicbrainz import MusicBrainzAdapter, MusicBrainzClient
 from enigma.adapters.wikidata import WikidataAdapter, WikidataClient
 
 __all__ = [
@@ -32,4 +33,6 @@ __all__ = [
     "score_candidate",
     "WikidataAdapter",
     "WikidataClient",
+    "MusicBrainzAdapter",
+    "MusicBrainzClient",
 ]

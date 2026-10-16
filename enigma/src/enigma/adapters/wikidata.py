@@ -39,14 +39,24 @@ P_MUSICBRAINZ = "P434"       # MusicBrainz artist id
 P_ORCID = "P496"
 P_ISNI = "P213"
 
-# instance-of QIDs -> ENIGMA entity type (minimal, extend as needed).
+# instance-of QIDs -> ENIGMA entity type (extend as new subject kinds enter scope).
 _TYPE_BY_QID = {
     "Q5": "person",
-    "Q215380": "music_artist",       # musical group
+    # music artists (groups/ensembles; solo artists are Q5 humans with a music occupation)
+    "Q215380": "music_artist",       # musical group / band
+    "Q2088357": "music_artist",      # musical ensemble
     "Q639669": "music_artist",       # musician
     "Q177220": "music_artist",       # singer
+    "Q488205": "music_artist",       # singer-songwriter
+    "Q5741069": "music_artist",      # rapper
+    # musical works / releases
     "Q482994": "work",               # album
+    "Q208569": "work",               # studio album
+    "Q222910": "work",               # extended play (EP)
+    "Q134556": "work",               # single
     "Q7366": "work",                 # song
+    "Q105543609": "work",            # musical composition
+    # other kinds
     "Q515": "place",                 # city
     "Q43229": "organization",        # organization
     "Q11446": "vehicle",             # ship

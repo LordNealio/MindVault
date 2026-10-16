@@ -1,0 +1,26 @@
+{
+  "created": "2026-01-01T00:00:00.000Z",
+  "count": 2,
+  "offset": 0,
+  "artists": [
+    {
+      "id": "381086ea-f511-4aba-bdf9-71c753dc5077",
+      "type": "Person",
+      "score": 100,
+      "name": "Kendrick Lamar",
+      "sort-name": "Lamar, Kendrick",
+      "country": "US",
+      "life-span": { "begin": "1987-06-17", "ended": false },
+      "disambiguation": ""
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "type": "Person",
+      "score": 70,
+      "name": "Kendrick Lamarr",
+      "sort-name": "Lamarr, Kendrick",
+      "life-span": { "begin": "1990", "ended": false },
+      "disambiguation": "actor"
+    }
+  ]
+}

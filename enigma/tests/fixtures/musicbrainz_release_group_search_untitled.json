@@ -1,0 +1,24 @@
+{
+  "created": "2026-01-01T00:00:00.000Z",
+  "count": 1,
+  "offset": 0,
+  "release-groups": [
+    {
+      "id": "7b2c3d4e-0000-4000-8000-000000000abc",
+      "type": "Album",
+      "primary-type": "Album",
+      "score": 100,
+      "title": "untitled unmastered.",
+      "first-release-date": "2016-03-04",
+      "artist-credit": [
+        {
+          "name": "Kendrick Lamar",
+          "artist": {
+            "id": "381086ea-f511-4aba-bdf9-71c753dc5077",
+            "name": "Kendrick Lamar"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "381086ea-f511-4aba-bdf9-71c753dc5077",
+  "name": "Kendrick Lamar",
+  "sort-name": "Lamar, Kendrick",
+  "type": "Person",
+  "country": "US",
+  "life-span": { "begin": "1987-06-17", "end": null, "ended": false },
+  "disambiguation": "",
+  "aliases": [
+    { "name": "Kung Fu Kenny", "sort-name": "Kung Fu Kenny", "type": null },
+    { "name": "K.Dot", "sort-name": "K.Dot", "type": "Artist name" }
+  ]
+}

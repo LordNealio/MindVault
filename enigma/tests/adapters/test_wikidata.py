@@ -68,6 +68,22 @@ def test_parse_entity_extracts_identity_and_dates():
     assert ent.occupation_ids == ("Q169470",)
 
 
+def test_music_instance_of_maps_to_music_artist():
+    payload = {
+        "entities": {
+            "Q11649": {
+                "id": "Q11649",
+                "labels": {"en": {"value": "Some Band"}},
+                "claims": {
+                    "P31": [{"mainsnak": {"snaktype": "value",
+                             "datavalue": {"value": {"id": "Q2088357"}, "type": "wikibase-entityid"}}}],
+                },
+            }
+        }
+    }
+    assert parse_entity(payload, "Q11649").type == "music_artist"
+
+
 def test_parse_entity_year_precision():
     payload = {
         "entities": {

@@ -31,25 +31,39 @@ This is the P0 foundation only — the part that proves the architecture. It is 
 | Postgres schema (entity / source / claim / relationship / rule / run / finding / rights) | `db/migrations/0001_init.sql` |
 | Canon engine (deterministic, versioned, replayable) | `src/enigma/canon/` — **working** |
 | Canonical rule specs (A1Z26, digit sum, digital root, reverse, date interval) | `rules/canonical/*.yaml` — **working** |
-| FastAPI skeleton | `src/enigma/api/app.py` — Canon + `/v1/entities/resolve` **live**, rest are honest `501` stubs |
+| FastAPI skeleton | `src/enigma/api/app.py` — Canon + `/v1/entities/resolve` + `/v1/music/resolve` **live**, rest are honest `501` stubs |
 | Golden + reproducibility tests | `tests/` — **working** |
-| Wikidata adapter + multi-signal entity resolution | `src/enigma/adapters/` — **working** (offline-tested + live) |
-| MusicBrainz adapter, research-run ledger, discovery, pgvector, UI | **not built yet** (next phases) |
+| Wikidata + MusicBrainz adapters, multi-signal entity resolution | `src/enigma/adapters/` — **working** (offline-tested + live) |
+| Research-run ledger, discovery, pgvector, UI | **not built yet** (next phases) |
 
-## Entity resolution (Wikidata)
+## Entity resolution (Wikidata + MusicBrainz)
 
-`src/enigma/adapters/` adds the first source adapter behind a provider-neutral
-`SourceAdapter` protocol. Wikidata (CC0) resolves a query to ranked candidates scored on
-**independent dimensions** — name, alias, type, birth/death year, authoritative id match —
-that are never collapsed into a single number: each `ResolutionResult` carries its full
-`signals` breakdown plus a `coverage` figure. A name-only hit scores lower than one
-corroborated on type and dates, and a shared stable id (VIAF/MusicBrainz/ORCID) is decisive.
-HTTP lives only in `WikidataClient`; parsing and scoring are pure, so the suite runs offline
-against recorded fixtures (`tests/fixtures/`). One opt-in live test: `ENIGMA_LIVE_TESTS=1`.
+`src/enigma/adapters/` holds source adapters behind a provider-neutral `SourceAdapter`
+protocol (`search` / `fetch_entity` / `get_rights`). Both resolve a query to ranked candidates
+scored on **independent dimensions** — name, alias, type, birth/death (or principal) year,
+authoritative id match — that are never collapsed into a single number: each `ResolutionResult`
+carries its full `signals` breakdown plus a `coverage` figure. A name-only hit scores lower than
+one corroborated on type and dates, and a shared stable id (VIAF / MusicBrainz / ORCID) is
+decisive — which is also how the two sources reconcile (Wikidata stores an entity's MusicBrainz
+id, so the same artist resolves across both).
+
+- **Wikidata** (`WikidataClient`, CC0) — cross-domain people/places/works/music.
+- **MusicBrainz** (`MusicBrainzClient`, CC0 core) — one adapter instance per entity *kind*
+  (`artist` / `recording` / `release` / `release-group` / `work`), e.g.
+  `MusicBrainzAdapter(kind="release-group")` resolves albums.
+
+HTTP lives only in the clients (descriptive User-Agent, ~1 req/s throttle, contact from
+`ENIGMA_CONTACT` and never a personal address); parsing and scoring are pure, so the suite runs
+offline against recorded fixtures (`tests/fixtures/`). Opt-in live tests: `ENIGMA_LIVE_TESTS=1`.
 
 ```
-1.000  Q7085      person   Niels Bohr  | name=1.0, type=1.0, birth_year=1.0
-0.533  Q20652992  -        Niels Bohr  | name=1.0        (name only -> lower certainty)
+# Wikidata — "Niels Bohr"
+1.000  Q7085      person         | name=1.0, type=1.0, birth_year=1.0
+0.533  Q20652992  -              | name=1.0            (name only -> lower certainty)
+
+# MusicBrainz — "Kendrick Lamar" (artist) and "untitled unmastered." (release-group)
+1.000  381086ea   person         Kendrick Lamar       | name=1.0, type=1.0, birth_year=1.0
+1.000  4e44335c   release_group  untitled unmastered. | name=1.0, type=1.0, birth_year=1.0
 ```
 
 ## The Canon engine

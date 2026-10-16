@@ -16,7 +16,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from enigma import __version__
-from enigma.adapters import ResolutionQuery, WikidataAdapter
+from enigma.adapters import MusicBrainzAdapter, ResolutionQuery, WikidataAdapter
 from enigma.canon import ENGINE_VERSION, get_rule, run_rule
 from enigma.canon.registry import list_rules
 
@@ -118,7 +118,6 @@ _PENDING = {
     "GET /v1/entities/{id}/graph": "relationship graph — phase: Research MVP",
     "POST /v1/discovery": "candidate-finding engine — phase: Discovery",
     "POST /v1/findings/{id}/review": "verification workflow — phase: Verification",
-    "POST /v1/music/resolve": "MusicBrainz adapter — phase: Music intelligence",
     "POST /v1/reports": "publication studio — phase: Publication",
 }
 
@@ -136,26 +135,23 @@ class ResolveRequest(BaseModel):
     limit: int = 7
 
 
-@app.post("/v1/entities/resolve")
-def entities_resolve(req: ResolveRequest) -> dict:
-    """Resolve a query to ranked Wikidata candidates (LIVE — calls Wikidata).
+class MusicResolveRequest(ResolveRequest):
+    kind: str = "artist"  # artist | recording | release | release-group | work
 
-    Returns the full per-dimension signal breakdown for each candidate; the
-    composite confidence is only a ranking key, never a verdict.
-    """
-    adapter = WikidataAdapter()
-    query = ResolutionQuery(
+
+def _query_from(req: ResolveRequest) -> ResolutionQuery:
+    return ResolutionQuery(
         name=req.name,
         entity_type=req.entity_type,
         birth_year=req.birth_year,
         death_year=req.death_year,
         external_ids=req.external_ids,
     )
-    try:
-        results = adapter.resolve(query, limit=req.limit)
-    except Exception as exc:  # noqa: BLE001 — surface upstream failure as 502
-        raise HTTPException(status_code=502, detail=f"Wikidata unavailable: {exc}") from exc
 
+
+def _resolve_response(adapter, results) -> dict:
+    """Serialize ranked results, keeping each candidate's full signal breakdown.
+    The composite confidence is only a ranking key, never a verdict."""
     return {
         "authority": adapter.authority,
         "rights": adapter.get_rights().__dict__,
@@ -169,12 +165,38 @@ def entities_resolve(req: ResolveRequest) -> dict:
                 "birth_year": r.candidate.birth_year,
                 "death_year": r.candidate.death_year,
                 "confidence": r.confidence,
+                "coverage": r.coverage,
                 "signals": r.signals,
                 "authoritative_id_match": r.authoritative_id_match,
             }
             for r in results
         ],
     }
+
+
+@app.post("/v1/entities/resolve")
+def entities_resolve(req: ResolveRequest) -> dict:
+    """Resolve a query to ranked Wikidata candidates (LIVE — calls Wikidata)."""
+    adapter = WikidataAdapter()
+    try:
+        results = adapter.resolve(_query_from(req), limit=req.limit)
+    except Exception as exc:  # noqa: BLE001 — surface upstream failure as 502
+        raise HTTPException(status_code=502, detail=f"Wikidata unavailable: {exc}") from exc
+    return _resolve_response(adapter, results)
+
+
+@app.post("/v1/music/resolve")
+def music_resolve(req: MusicResolveRequest) -> dict:
+    """Resolve a music query to ranked MusicBrainz candidates (LIVE — calls MusicBrainz)."""
+    try:
+        adapter = MusicBrainzAdapter(kind=req.kind)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    try:
+        results = adapter.resolve(_query_from(req), limit=req.limit)
+    except Exception as exc:  # noqa: BLE001 — surface upstream failure as 502
+        raise HTTPException(status_code=502, detail=f"MusicBrainz unavailable: {exc}") from exc
+    return _resolve_response(adapter, results)
 
 
 @app.post("/v1/research-runs")
@@ -185,8 +207,3 @@ def research_runs() -> dict:
 @app.post("/v1/discovery")
 def discovery() -> dict:
     _not_implemented("POST /v1/discovery")
-
-
-@app.post("/v1/music/resolve")
-def music_resolve() -> dict:
-    _not_implemented("POST /v1/music/resolve")
