@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { trackEvent } from "../../lib/metrics.js";
 import { createHabit } from "../../lib/habitService.js";
+import { Overlay } from "../../lib/Overlay.jsx";
 
 // ── Design tokens ─────────────────────────────────────────
 const D = {
@@ -35,6 +36,7 @@ export function BoxBreathing({ onClose }) {
   const [rounds,  setRounds]  = useState(0);
   const [showSaveHabitModal, setShowSaveHabitModal] = useState(false);
   const [savingHabit, setSavingHabit] = useState(false);
+
 
   const cycleLen    = secsPer * 4;
   const cyc         = elapsed % cycleLen;
@@ -105,15 +107,14 @@ export function BoxBreathing({ onClose }) {
   };
 
   return (
-    <div style={{
-      position:"fixed", inset:0, zIndex:650,
-      background:D.bg,
-      display:"flex", flexDirection:"column",
-    }}>
+    <Overlay zIndex={650} background={D.bg}>
 
       {/* ── Header ──────────────────────────────────────── */}
-      <div style={{display:"flex",alignItems:"center",
-        justifyContent:"space-between",padding:"20px 20px 0"}}>
+      {/* A fixed overlay sits outside #root, so it does not inherit the
+          safe-area padding and would otherwise run under the notch. */}
+      <div style={{display:"flex",alignItems:"center",flexShrink:0,
+        justifyContent:"space-between",
+        padding:"calc(20px + env(safe-area-inset-top)) 20px 0"}}>
         <div>
           <div style={{fontFamily:"'Unbounded',monospace",fontSize:9,
             fontWeight:700,letterSpacing:".14em",color:D.muted}}>
@@ -134,8 +135,11 @@ export function BoxBreathing({ onClose }) {
       </div>
 
       {/* ── Main ────────────────────────────────────────── */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",
-        alignItems:"center",justifyContent:"center",gap:36,padding:24}}>
+      {/* minHeight:0 + overflowY lets a short screen still reach the controls
+          instead of clipping them, now that the page behind cannot scroll. */}
+      <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",
+        alignItems:"center",justifyContent:"center",gap:36,padding:24,
+        overflowY:"auto",overscrollBehavior:"contain"}}>
 
         {/* Phase label */}
         <div style={{textAlign:"center",minHeight:54}}>
@@ -208,7 +212,8 @@ export function BoxBreathing({ onClose }) {
       </div>
 
       {/* ── Controls ────────────────────────────────────── */}
-      <div style={{padding:"0 20px 44px",display:"flex",flexDirection:"column",gap:10}}>
+      <div style={{flexShrink:0,display:"flex",flexDirection:"column",gap:10,
+        padding:"0 20px calc(44px + env(safe-area-inset-bottom))"}}>
         <div style={{display:"flex",gap:10}}>
           <button onClick={() => setRunning(r => !r)} style={{
             flex:1,padding:"16px",borderRadius:14,border:"none",
@@ -279,6 +284,6 @@ export function BoxBreathing({ onClose }) {
           </div>
         </div>
       )}
-    </div>
+    </Overlay>
   );
 }

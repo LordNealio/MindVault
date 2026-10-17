@@ -617,9 +617,14 @@ function GameEngine({ mode, onEnd }) {
       />
 
       {/* Game arena */}
+      {/* "safe center" centres only while there is room; once the arena is
+          taller than the space, it falls back to flex-start instead of
+          overflowing equally off both ends, where the top of the arrow pad
+          became unreachable. Vertical scroll is the backstop. */}
       <div style={{ flex:1, minHeight:0, display:"flex", flexDirection:"column",
-        alignItems:"center", justifyContent:"center", gap:16, padding:"16px 16px",
-        position:"relative", overflow:"hidden" }}>
+        alignItems:"center", justifyContent:"safe center", gap:16, padding:"16px 16px",
+        position:"relative", overflowX:"hidden", overflowY:"auto",
+        overscrollBehavior:"contain" }}>
 
         {/* Mode rule badge */}
         {isFlanker && <RuleBadge mode={mode.id} currentColor={trial?.arrowColor}/>}

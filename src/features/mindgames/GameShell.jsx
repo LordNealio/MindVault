@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useScrollLock } from "../../lib/useScrollLock.js";
 
 // ── Design tokens (matching App.jsx D palette) ────────────
 const G = {
@@ -13,18 +13,17 @@ const G = {
  * and a scrollable content area.
  */
 export function GameShell({ game, onBack, children }) {
-  // Prevent body scroll while a game is active
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, []);
+  // Body overflow alone does not hold on iOS — see useScrollLock.
+  useScrollLock();
 
   return (
     <div style={{
       display:"flex", flexDirection:"column",
-      height:"calc(100dvh - 72px)", // dvh respects browser chrome on mobile
-      background:G.bg, overflow:"hidden",
+      // 72px is the fixed bottom nav. The home-indicator inset has to come off
+      // too, or on a notched iPhone the game is that much taller than the space
+      // it has and the page scrolls.
+      height:"calc(100dvh - 72px - env(safe-area-inset-bottom))",
+      background:G.bg, overflow:"hidden", overscrollBehavior:"contain",
     }}>
       {/* Header */}
       <div style={{
@@ -60,8 +59,13 @@ export function GameShell({ game, onBack, children }) {
         </div>
       </div>
 
-      {/* Game content — flex column so children can fill height */}
-      <div style={{flex:1, minHeight:0, display:"flex", flexDirection:"column", overflow:"hidden"}}>
+      {/* Game content — flex column so children can fill height.
+          overflowY:auto, NOT overflow:hidden: a game taller than the space it
+          has was being clipped with no way to reach the rest of it (the
+          attention game showed only its top arrow). Scrolling is the safety
+          net; games should still aim to fit. */}
+      <div style={{flex:1, minHeight:0, display:"flex", flexDirection:"column",
+        overflowX:"hidden", overflowY:"auto", overscrollBehavior:"contain"}}>
         {children}
       </div>
     </div>

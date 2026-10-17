@@ -50,7 +50,12 @@ const D = {
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes wave{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
     @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
-    .fu{animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both}
+    /* fill-mode is backwards, not both. With both, the final keyframe's
+       transform:translateY(0) stays applied forever, and a transformed element
+       becomes the containing block for any position:fixed descendant, which
+       silently un-pins overlays from the viewport. The end state here is the
+       element's natural state, so dropping the forwards fill looks identical. */
+    .fu{animation:fadeUp .4s cubic-bezier(.16,1,.3,1) backwards}
   `;
   document.head.appendChild(s);
 })();
