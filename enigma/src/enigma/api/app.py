@@ -19,6 +19,11 @@ from enigma import __version__
 from enigma.adapters import MusicBrainzAdapter, ResolutionQuery, WikidataAdapter
 from enigma.canon import ENGINE_VERSION, get_rule, run_rule
 from enigma.canon.registry import list_rules
+from enigma.ledger import InMemoryLedgerStore, replay
+
+# Process-local ledger for the POC. Swap for PostgresLedgerStore(DATABASE_URL)
+# to persist across restarts.
+_LEDGER = InMemoryLedgerStore()
 
 app = FastAPI(
     title="ENIGMA",
@@ -114,7 +119,6 @@ def transforms_run(req: TransformRequest) -> dict:
 # Not yet implemented — contract declared, behavior pending
 # --------------------------------------------------------------------------
 _PENDING = {
-    "POST /v1/research-runs": "research-run ledger — phase: Research MVP",
     "GET /v1/entities/{id}/graph": "relationship graph — phase: Research MVP",
     "POST /v1/discovery": "candidate-finding engine — phase: Discovery",
     "POST /v1/findings/{id}/review": "verification workflow — phase: Verification",
@@ -199,9 +203,50 @@ def music_resolve(req: MusicResolveRequest) -> dict:
     return _resolve_response(adapter, results)
 
 
+class ResearchRunRequest(BaseModel):
+    query: str
+    requested_modules: list[str] = []
+    canon_version: Optional[str] = None
+
+
 @app.post("/v1/research-runs")
-def research_runs() -> dict:
-    _not_implemented("POST /v1/research-runs")
+def create_research_run(req: ResearchRunRequest) -> dict:
+    """Create a research run in the ledger (LIVE — in-memory store).
+
+    Steps are appended programmatically via the RunRecorder; this returns the
+    run id to attach them to.
+    """
+    run_id = _LEDGER.create_run(
+        req.query,
+        requested_modules=tuple(req.requested_modules),
+        canon_version=req.canon_version,
+    )
+    run = _LEDGER.get_run(run_id)
+    return {"run_id": run_id, "status": run["status"], "canon_version": run["canon_version"]}
+
+
+@app.get("/v1/research-runs/{run_id}")
+def get_research_run(run_id: str) -> dict:
+    try:
+        run = _LEDGER.get_run(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"run": run, "steps": _LEDGER.list_steps(run_id)}
+
+
+@app.get("/v1/research-runs/{run_id}/replay")
+def replay_research_run(run_id: str) -> dict:
+    """Re-execute the run's deterministic steps and verify each determinism_hash."""
+    try:
+        _LEDGER.get_run(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    report = replay(_LEDGER, run_id)
+    return {
+        "run_id": report.run_id,
+        "ok": report.ok,
+        "steps": [s.__dict__ for s in report.steps],
+    }
 
 
 @app.post("/v1/discovery")

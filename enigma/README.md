@@ -31,10 +31,11 @@ This is the P0 foundation only — the part that proves the architecture. It is 
 | Postgres schema (entity / source / claim / relationship / rule / run / finding / rights) | `db/migrations/0001_init.sql` |
 | Canon engine (deterministic, versioned, replayable) | `src/enigma/canon/` — **working** |
 | Canonical rule specs (A1Z26, digit sum, digital root, reverse, date interval) | `rules/canonical/*.yaml` — **working** |
-| FastAPI skeleton | `src/enigma/api/app.py` — Canon + `/v1/entities/resolve` + `/v1/music/resolve` **live**, rest are honest `501` stubs |
+| FastAPI skeleton | `src/enigma/api/app.py` — Canon, `/v1/entities/resolve`, `/v1/music/resolve`, `/v1/research-runs` **live**, rest are honest `501` stubs |
 | Golden + reproducibility tests | `tests/` — **working** |
 | Wikidata + MusicBrainz adapters, multi-signal entity resolution | `src/enigma/adapters/` — **working** (offline-tested + live) |
-| Research-run ledger, discovery, pgvector, UI | **not built yet** (next phases) |
+| Research-run ledger (record + replay) | `src/enigma/ledger/` — **working** (in-memory + Postgres stores) |
+| Discovery engine, pgvector, UI | **not built yet** (next phases) |
 
 ## Entity resolution (Wikidata + MusicBrainz)
 
@@ -64,6 +65,28 @@ offline against recorded fixtures (`tests/fixtures/`). Opt-in live tests: `ENIGM
 # MusicBrainz — "Kendrick Lamar" (artist) and "untitled unmastered." (release-group)
 1.000  381086ea   person         Kendrick Lamar       | name=1.0, type=1.0, birth_year=1.0
 1.000  4e44335c   release_group  untitled unmastered. | name=1.0, type=1.0, birth_year=1.0
+```
+
+## Research-run ledger (record + replay)
+
+`src/enigma/ledger/` records a research run as an ordered list of steps and can replay it.
+A `RunRecorder` logs two kinds of step: `run_rule` (a deterministic Canon transformation,
+persisted as a `transformation_run` with its `determinism_hash`) and `resolve_entity` (a live
+adapter resolution, recorded for provenance). `replay()` re-executes every `run_rule` step and
+asserts it reproduces the stored hash — **pinning the exact rule version that ran**, so replay
+stays correct even after the Canon gains newer versions. A tampered ledger entry fails replay.
+
+Storage is a port (`LedgerStore`) with two interchangeable implementations: `InMemoryLedgerStore`
+(tests/dev, the API's default) and `PostgresLedgerStore` (psycopg; `pip install -e ".[db]"`,
+set `ENIGMA_DATABASE_URL`) writing to the `research_run` / `research_run_step` / `transformation_run`
+tables. So the ledger logic is provable offline.
+
+```
+run ...  status=complete
+  1. run_rule numeric.a1z26@1.0.0 (Niels Bohr) -> {'values': [...], 'sum': 102}
+  2. run_rule numeric.digital_root@1.1.0 (102)  -> {'root': 3}
+  3. run_rule date.interval_days@1.0.0 (...)     -> {'days': 563}
+replay ok = True   (1. matched  2. matched  3. matched)
 ```
 
 ## The Canon engine
@@ -104,8 +127,10 @@ enigma/
 ├── rules/canonical/      # versioned deterministic rule specs (the Canon)
 ├── src/enigma/
 │   ├── canon/            # normalize + registry + engine + operations
+│   ├── adapters/         # SourceAdapter protocol + Wikidata + MusicBrainz + resolution
+│   ├── ledger/           # research-run store (in-memory + Postgres) + recorder + replay
 │   ├── models.py         # Finding / execution-record dataclasses
-│   └── api/app.py        # FastAPI: Canon endpoints live, rest stubbed 501
+│   └── api/app.py        # FastAPI: Canon/resolve/music/research-runs live, rest stubbed 501
 ├── tests/
 │   ├── golden/           # known-answer tests (incl. every rule's own fixtures)
 │   └── reproducibility/  # replay produces identical deterministic output
