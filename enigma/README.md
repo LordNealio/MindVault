@@ -31,11 +31,12 @@ This is the P0 foundation only — the part that proves the architecture. It is 
 | Postgres schema (entity / source / claim / relationship / rule / run / finding / rights) | `db/migrations/0001_init.sql` |
 | Canon engine (deterministic, versioned, replayable) | `src/enigma/canon/` — **working** |
 | Canonical rule specs (A1Z26, digit sum, digital root, reverse, date interval) | `rules/canonical/*.yaml` — **working** |
-| FastAPI skeleton | `src/enigma/api/app.py` — Canon, `/v1/entities/resolve`, `/v1/music/resolve`, `/v1/research-runs` **live**, rest are honest `501` stubs |
+| FastAPI skeleton | `src/enigma/api/app.py` — Canon, `/v1/entities/resolve`, `/v1/music/resolve`, `/v1/research-runs`, `/v1/discovery` **live**, rest are honest `501` stubs |
 | Golden + reproducibility tests | `tests/` — **working** |
 | Wikidata + MusicBrainz adapters, multi-signal entity resolution | `src/enigma/adapters/` — **working** (offline-tested + live) |
 | Research-run ledger (record + replay) | `src/enigma/ledger/` — **working** (in-memory + Postgres stores) |
-| Discovery engine, pgvector, UI | **not built yet** (next phases) |
+| Discovery engine (candidate findings, never promoted) | `src/enigma/discovery/` — **working** |
+| Statistical discipline (null models + FDR), pgvector, UI | **not built yet** (next phases) |
 
 ## Entity resolution (Wikidata + MusicBrainz)
 
@@ -66,6 +67,28 @@ offline against recorded fixtures (`tests/fixtures/`). Opt-in live tests: `ENIGM
 1.000  381086ea   person         Kendrick Lamar       | name=1.0, type=1.0, birth_year=1.0
 1.000  4e44335c   release_group  untitled unmastered. | name=1.0, type=1.0, birth_year=1.0
 ```
+
+## Discovery engine (candidates, never verdicts)
+
+`src/enigma/discovery/` generates candidate `Finding`s and is structurally incapable of
+promoting them. Its first detector finds **computed collisions** — subjects that produce the
+same value under a Canon rule — the canonical ENIGMA pattern. Every finding keeps its
+independent dimensions separate (never one "truth score"): `relationship_class="computed"`,
+`confidence.fact=1.0` for the calculation, `multiplicity_scope` = how many subjects were
+actually compared, and — always — `intentionality="unknown"` and
+`interpretation_status="unreviewed"`. Significance (`pattern_unusualness`, `fdr_q`) is left
+`None`: judging it is the separate statistics phase, and promotion is a separate human review.
+
+Subjects a rule can't operate on (e.g. a digits-only rule applied to a name, which normalizes
+to empty) are excluded, so the engine never emits a spurious "everyone shares nothing" collision.
+
+```
+# A1Z26 over six physicists' names:
+[computed] 2 subjects share numeric.a1z26@1.0.0 sum = 102: Niels Bohr, Marie Curie
+   fact=1.0  unusualness=None  scope=6  intent=unknown  status=unreviewed
+```
+
+That coincidence is real, reproducible, and — correctly — asserts nothing about meaning.
 
 ## Research-run ledger (record + replay)
 
@@ -129,6 +152,7 @@ enigma/
 │   ├── canon/            # normalize + registry + engine + operations
 │   ├── adapters/         # SourceAdapter protocol + Wikidata + MusicBrainz + resolution
 │   ├── ledger/           # research-run store (in-memory + Postgres) + recorder + replay
+│   ├── discovery/        # candidate-finding engine (computed collisions) — never promotes
 │   ├── models.py         # Finding / execution-record dataclasses
 │   └── api/app.py        # FastAPI: Canon/resolve/music/research-runs live, rest stubbed 501
 ├── tests/

@@ -10,6 +10,7 @@ Run:  uvicorn enigma.api.app:app --reload   (requires the `api` extra)
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any, Optional
 
 from fastapi import FastAPI, HTTPException
@@ -19,6 +20,7 @@ from enigma import __version__
 from enigma.adapters import MusicBrainzAdapter, ResolutionQuery, WikidataAdapter
 from enigma.canon import ENGINE_VERSION, get_rule, run_rule
 from enigma.canon.registry import list_rules
+from enigma.discovery import DiscoveryEngine, Subject
 from enigma.ledger import InMemoryLedgerStore, replay
 
 # Process-local ledger for the POC. Swap for PostgresLedgerStore(DATABASE_URL)
@@ -120,7 +122,6 @@ def transforms_run(req: TransformRequest) -> dict:
 # --------------------------------------------------------------------------
 _PENDING = {
     "GET /v1/entities/{id}/graph": "relationship graph — phase: Research MVP",
-    "POST /v1/discovery": "candidate-finding engine — phase: Discovery",
     "POST /v1/findings/{id}/review": "verification workflow — phase: Verification",
     "POST /v1/reports": "publication studio — phase: Publication",
 }
@@ -249,6 +250,36 @@ def replay_research_run(run_id: str) -> dict:
     }
 
 
+class DiscoverySubject(BaseModel):
+    id: str
+    label: str
+    text: str
+
+
+class DiscoveryRequest(BaseModel):
+    subjects: list[DiscoverySubject]
+    rule_id: str
+    key_field: Optional[str] = None
+    version: Optional[str] = None
+
+
 @app.post("/v1/discovery")
-def discovery() -> dict:
-    _not_implemented("POST /v1/discovery")
+def discovery(req: DiscoveryRequest) -> dict:
+    """Generate candidate findings from computed collisions (LIVE).
+
+    Findings are candidates, never verdicts: each keeps its independent dimensions
+    and is stamped interpretation_status=unreviewed / intentionality=unknown.
+    Transformation runs are persisted to the ledger as evidence.
+    """
+    engine = DiscoveryEngine(store=_LEDGER)
+    subjects = [Subject(id=s.id, label=s.label, text=s.text) for s in req.subjects]
+    try:
+        findings = engine.discover_computed_collisions(
+            subjects, req.rule_id, version=req.version, key_field=req.key_field
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"unknown rule: {exc}") from exc
+    return {
+        "note": "candidates only — not verified; significance not yet evaluated",
+        "findings": [asdict(f) for f in findings],
+    }

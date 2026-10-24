@@ -6,3 +6,14 @@ dist/
 *.log
 
 .vercel
+
+# Junctions to sibling projects, created so the preview server can serve them.
+# They are NOT part of this repo — each is its own project with its own history.
+# Committing them would pull those entire projects (portfolio alone is ~366MB)
+# into MindVault.
+/emanual/
+/evidence-engine/
+/mirror/
+/portfolio/
+/rocket-to-pluto/
+/seven-temples/
